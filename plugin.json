@@ -1,0 +1,12 @@
+{
+  "name": "agy-beautify",
+  "displayName": "AGY Beautify",
+  "version": "1.4.0",
+  "description": "All-in-one Antigravity beautification & productivity suite: real-time Liquid Glass/Frosted/Solid & Light/Dark Quick Studio with native titlebar overlay sync, live quota & reset time countdown, draggable auto-compact context threshold (/compact), full-pane Token & USD Monitor in the left sidebar, curated & custom wallpapers, Gemini Starlight effort slider, auto Chinese localization, and right-click reveal file.",
+  "logo": "assets/logo.svg",
+  "suggestedPrompts": [
+    "/agy-beautify 打开 AGY Beautify 液态玻璃与美化控制台",
+    "/agy-beautify 查看监控台的 Token 与美元统计",
+    "/agy-beautify 切换深浅色液态玻璃或自定义壁纸"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "command": "node",
+  "args": [
+    "server.mjs"
+  ],
+  "display_name": "AGY Beautify",
+  "description": "Gemini 星尘模型选择器、自动中文汉化、上下文与 Token 用量仪表盘、右键定位文件与壁纸主题（内置 GTA 6）。",
+  "has_web_ui": true,
+  "restart_policy": "always",
+  "ui_config": {
+    "display_name": "AGY Beautify",
+    "views": [
+      {
+        "entrypoint": "SIDECAR_UI_ENTRYPOINT_AUX_PANE",
+        "path": "/",
+        "title": "AGY Beautify"
+      }
+    ]
+  }
+}
