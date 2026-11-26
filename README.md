@@ -8,7 +8,7 @@
   </p>
   <p>
     <img src="https://img.shields.io/badge/Antigravity-2.0%2B-6366f1?style=flat-square" alt="Antigravity 2.0+" />
-    <img src="https://img.shields.io/badge/Version-1.4.0-10b981?style=flat-square" alt="Version 1.4.0" />
+    <img src="https://img.shields.io/badge/Version-1.5.0-10b981?style=flat-square" alt="Version 1.5.0" />
     <img src="https://img.shields.io/badge/Dependencies-Zero-38bdf8?style=flat-square" alt="Zero Dependencies" />
     <img src="https://img.shields.io/badge/License-MIT-f59e0b?style=flat-square" alt="MIT License" />
   </p>
@@ -28,6 +28,7 @@
 | **Gemini 星尘模型滑条** | 自动屏蔽原生冗长下拉菜单，在输入框上方悬浮流动星尘滑条切思考强度，支持一键切模型家族与 `⚡` 加速（`Shift+点击` 开原生菜单） |
 | **左侧全屏「Token 与美元监控台」** | 分「总览 / 工具与耗时 / 全部会话」三视图，展示总 Token、美元、缓存节省、14 天趋势、Token/耗时环形图、20 周热力图、实时配额与重置时间、工具/命令/技能排行与可搜索会话卡片 |
 | **自动中文汉化 & 右键文件定位** | 开箱即用简体中文界面（跳过对话正文与代码块）；对话内任意文件右键支持打开所在文件夹、默认程序打开、复制路径与在终端打开目录 |
+| **一键在线检测与热更新** | 自动检测 GitHub 最新 Release；发现新版本后在浮窗、监控台与侧边栏轻提示，支持 SHA-256 校验、一键原子覆盖与免重启热重载（完整保留个人设置与自定义壁纸） |
 
 ---
 
@@ -48,13 +49,22 @@
   </tr>
 </table>
 
-### 2. 底栏快捷美化浮窗 & 上下文自动压缩进度条
+### 2. 底栏快捷美化浮窗、配额重置倒计时 & 上下文自动压缩
 
-所有外观开关、材质切换、预设与壁纸均实时生效；下方内置 **上下文压缩卡片**，支持手动 `⚡ 立即压缩` 以及左右拖动圆点设定触发阈值（例如拖到 `70%`，上下文超过 `70%` 且本轮对话结束后自动执行 `/compact`）。
+所有外观开关、材质切换、预设与壁纸均实时生效；下方内置 **上下文压缩卡片**，支持手动 `⚡ 立即压缩` 以及左右拖动圆点设定触发阈值（例如拖到 `70%`，上下文超过 `70%` 且本轮对话结束后自动执行 `/compact`）。切到 **「用量速览」** 标签可实时查看 5 小时/周模型配额、精确重置倒计时，并在底部一键检测 GitHub 新版本。
 
-<p align="center">
-  <img src="docs/screenshots/03_quick_studio_compact.png" width="460" alt="快捷美化浮窗与上下文自动压缩进度条" />
-</p>
+<table>
+  <tr>
+    <td width="54%">
+      <img src="docs/screenshots/03_quick_studio_compact.png" alt="快捷美化浮窗与上下文自动压缩进度条" />
+      <p align="center">快捷美化 & 自动压缩进度条</p>
+    </td>
+    <td width="46%">
+      <img src="docs/screenshots/08_quick_usage_updater.png" alt="用量速览、实时配额重置倒计时与一键更新" />
+      <p align="center">用量速览、配额重置倒计时 & 检查更新</p>
+    </td>
+  </tr>
+</table>
 
 ### 3. Gemini 星尘模型与思考强度滑条
 
@@ -91,11 +101,16 @@ git clone https://github.com/hongyanmo/agy-beautify.git ~/.gemini/config/plugins
 
 ### 方式二：下载 Release 压缩包手动安装
 
-1. 前往本仓库的 **Releases** 页面下载 `agy-beautify-v1.4.0.zip`。
+1. 前往本仓库的 **Releases** 页面下载最新压缩包（如 `agy-beautify-v1.5.0.zip`）。
 2. 解压到 Antigravity 插件目录，确保目录结构如下：
    - Windows: `%USERPROFILE%\.gemini\config\plugins\agy-beautify\plugin.json`
    - macOS / Linux: `~/.gemini/config/plugins/agy-beautify/plugin.json`
 3. 重启或打开 Antigravity，在左侧 **「自定义 / 插件」** 中启用 **AGY Beautify** 即可生效。
+
+### 后续如何更新（v1.5.0+）
+
+- **自动一键更新（推荐）**：从 `v1.5.0` 起内置 GitHub Release 更新器。有新版本发布时，底栏快捷浮窗、监控台顶栏与侧边栏 **「功能更新」** 面板都会出现更新提示，点击 **「一键更新」** 即可自动下载、SHA-256 校验、覆盖并热重载生效，**你的个人配置与自定义壁纸完全保留**。
+- **手动检查更新**：点开底栏 `✦` 浮窗 →「用量速览」底部的 **「检查更新」**，或在侧边栏控制台中点击 **「检查更新」**。
 
 ---
 
@@ -114,6 +129,7 @@ agy-beautify/
 │   ├── settings.mjs                 # 设置持久化、预设方案与壁纸管理
 │   ├── i18n_dict.mjs                # 简体中文界面词典
 │   ├── path_utils.mjs               # 跨平台本地路径解析与文件管理器定位
+│   ├── updater.mjs                  # GitHub Release 检测、SHA-256 校验与原子热更新引擎
 │   ├── ui_html.mjs & ui_script.mjs  # 侧边栏美化控制台界面
 │   └── beautify.test.mjs            # Node 原生单元测试
 └── docs/screenshots/                # README 预览截图

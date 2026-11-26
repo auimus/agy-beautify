@@ -17,6 +17,7 @@ import {
 import { createTelemetryEngine, getConversationDirs } from './telemetry.mjs';
 import { createSidebarHtml } from './ui_html.mjs';
 import { createSidebarScript } from './ui_script.mjs';
+import { createPluginUpdater } from './updater.mjs';
 
 function installEpipeGuard(proc = process) {
   const isEpipe = err => err?.code === 'EPIPE';
@@ -84,14 +85,24 @@ function startSelfReloadWatcher(directory, onChanged) {
   return () => clearInterval(timer);
 }
 
+const pluginRootDir = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const settingsStore = createSettingsStore();
 const telemetryEngine = createTelemetryEngine({ conversationDirs: getConversationDirs() });
 let lastStatus = { cdpState: 'unknown', pageCount: 0, attachedCount: 0 };
 let cachedUsage = null;
 let cachedUsageAt = 0;
 let injectorRef = null;
+let triggerShutdown = null;
 let ackClientRev = 0;
 let sidecarRev = 0;
+
+const updater = createPluginUpdater({
+  pluginDir: pluginRootDir,
+  onUpdated: () => {
+    void injectorRef?.tick();
+    setTimeout(() => { triggerShutdown?.('updated'); }, 1000);
+  },
+});
 
 function bumpAckRev(payload) {
   const r = Number(payload?.clientRev);
@@ -120,6 +131,22 @@ function getWallpaperCatalogForPage() {
 
 function handleInvoke(payload = {}) {
   const { action, raw } = payload;
+
+  // Built-in GitHub Release Updater Actions
+  if (action === 'checkUpdate') {
+    return updater.checkForUpdate({ force: true }).then(st => {
+      void injectorRef?.tick();
+      if (st.status === 'error') return { message: `检查更新失败：${st.error}`, isError: true };
+      if (st.hasUpdate) return { message: `发现新版本 v${st.latestVersion}（当前 v${st.currentVersion}），可点击顶部更新按钮一键升级`, isError: false };
+      return { message: `当前已是最新版本 v${st.currentVersion}`, isError: false };
+    });
+  }
+  if (action === 'installUpdate') {
+    return updater.installUpdate().then(res => {
+      void injectorRef?.tick();
+      return { message: res.message, isError: !res.ok };
+    });
+  }
 
   // Quick Studio & In-Page Settings Actions
   if (action === 'refreshDashboard') {
@@ -214,6 +241,7 @@ if (isMain) {
       context: telemetryEngine.getConversationMetrics(convId),
       quotas: await telemetryEngine.fetchQuota(),
       dashboard: readUsageCached(false),
+      update: updater.getState(),
     }),
     onInvoke: handleInvoke,
     onStatus: s => { lastStatus = s; },
@@ -258,7 +286,20 @@ if (isMain) {
         context: telemetryEngine.getConversationMetrics(convId),
         quotas: await telemetryEngine.fetchQuota(),
         usage: data?.includeUsage ? readUsageCached(false) : cachedUsage,
+        update: updater.getState(),
       };
+    }, 'POST');
+
+    app.api('/api/update/check', async data => {
+      const state = await updater.checkForUpdate({ force: data?.force !== false });
+      void injector.tick();
+      return { ok: state.status !== 'error', update: state };
+    }, 'POST');
+
+    app.api('/api/update/install', async () => {
+      const res = await updater.installUpdate();
+      void injector.tick();
+      return { ...res, update: updater.getState() };
     }, 'POST');
 
     app.api('/api/settings', data => {
@@ -335,11 +376,25 @@ if (isMain) {
   const shutdown = async reason => {
     if (stopping) return;
     stopping = true;
+    clearTimeout(initUpdateTimer);
+    clearInterval(periodicUpdateTimer);
     stopWatching();
     console.log('[agy-beautify] stopping:', reason);
     try { await injector.stop(); }
     finally { process.exit(0); }
   };
+  triggerShutdown = reason => { void shutdown(reason); };
+
+  // Passive background check on startup (10s delay) & every 6 hours when enabled
+  const runAutoUpdateCheck = () => {
+    if (settingsStore.read().autoCheckUpdate === false) return;
+    void updater.checkForUpdate({ force: false }).then(() => { void injector.tick(); }).catch(() => {});
+  };
+  const initUpdateTimer = setTimeout(runAutoUpdateCheck, 10_000);
+  initUpdateTimer.unref?.();
+  const periodicUpdateTimer = setInterval(runAutoUpdateCheck, 6 * 3600_000);
+  periodicUpdateTimer.unref?.();
+
   const stopWatching = startSelfReloadWatcher(dirname(fileURLToPath(import.meta.url)), () => void shutdown('files changed'));
   for (const sig of ['SIGTERM', 'SIGINT']) process.once(sig, () => void shutdown(sig));
 }

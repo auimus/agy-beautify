@@ -1905,6 +1905,25 @@ function pageInstallBeautifyRuntime(owner, hash, bindingName, zhExact, zhPattern
         margin-bottom: 9px;
       }
       .brand { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 12.5px; }
+      .upd-pill {
+        border: 1px solid rgba(52,211,153,0.52);
+        background: ${dark ? 'rgba(16,185,129,0.22)' : 'rgba(5,150,105,0.14)'};
+        color: ${dark ? '#6ee7b7' : '#047857'};
+        border-radius: 999px; padding: 2px 7px; font-size: 10px; font-weight: 700;
+        cursor: pointer; white-space: nowrap; transition: filter .12s ease;
+      }
+      .upd-pill:hover { filter: brightness(1.12); }
+      .upd-foot {
+        margin-top: 8px; padding-top: 7px;
+        border-top: 1px solid ${dark ? 'rgba(255,255,255,0.09)' : 'rgba(15,23,42,0.08)'};
+        display: flex; align-items: center; justify-content: space-between; gap: 8px;
+        font-size: 10.5px; color: ${dark ? '#94a3b8' : '#64748b'};
+      }
+      .upd-link {
+        border: 0; background: transparent; padding: 0; cursor: pointer;
+        color: ${dark ? '#93c5fd' : '#2563eb'}; font-size: 10.5px; font-weight: 600;
+      }
+      .upd-link:hover { text-decoration: underline; }
       .spark {
         width: 20px; height: 20px; border-radius: 7px;
         background: linear-gradient(135deg, #2563eb, #7c3aed, #06b6d4);
@@ -2084,7 +2103,25 @@ function pageInstallBeautifyRuntime(owner, hash, bindingName, zhExact, zhPattern
 
     const hdr = document.createElement('div');
     hdr.className = 'hdr';
-    hdr.innerHTML = `<div class="brand"><span class="spark">✦</span><span>AGY Beautify</span></div>`;
+    const upd = telemetry?.update;
+    const brandWrap = document.createElement('div');
+    brandWrap.className = 'brand';
+    brandWrap.innerHTML = `<span class="spark">✦</span><span>AGY Beautify</span>`;
+    if (upd?.hasUpdate && upd.latestVersion) {
+      const upBtn = document.createElement('button');
+      upBtn.type = 'button';
+      upBtn.className = 'upd-pill';
+      upBtn.textContent = upd.status === 'updating' ? '更新中...' : `⬆ v${upd.latestVersion}`;
+      upBtn.title = `发现新版本 v${upd.latestVersion}（当前 v${upd.currentVersion || ''}），点击一键下载更新并自动重载`;
+      upBtn.onclick = () => {
+        if (upd.status === 'updating') return;
+        upBtn.textContent = '更新中...';
+        showToast(`正在从 GitHub 下载并安装 v${upd.latestVersion}...`);
+        invokeSidecar({ action: 'installUpdate' });
+      };
+      brandWrap.appendChild(upBtn);
+    }
+    hdr.appendChild(brandWrap);
     const tabs = document.createElement('div');
     tabs.className = 'tabs';
     for (const [id, lbl] of [['beautify', '快捷美化'], ['usage', '用量速览']]) {
@@ -2447,6 +2484,37 @@ function pageInstallBeautifyRuntime(owner, hash, bindingName, zhExact, zhPattern
           box.appendChild(gBox);
         }
       }
+      // Subtle version & manual update check footer in Usage tab
+      const uFoot = document.createElement('div');
+      uFoot.className = 'upd-foot';
+      const curVer = upd?.currentVersion ? `v${upd.currentVersion}` : 'AGY Beautify';
+      const stTxt = upd?.hasUpdate
+        ? `发现新版 v${upd.latestVersion}`
+        : upd?.status === 'updating'
+          ? '正在更新...'
+          : upd?.status === 'checking'
+            ? '正在检查...'
+            : curVer;
+      uFoot.innerHTML = `<span>${escHtml(stTxt)}</span>`;
+      const actLink = document.createElement('button');
+      actLink.type = 'button';
+      actLink.className = 'upd-link';
+      if (upd?.hasUpdate) {
+        actLink.textContent = `⬆ 一键更新 v${upd.latestVersion}`;
+        actLink.onclick = () => {
+          actLink.textContent = '更新中...';
+          showToast(`正在下载并更新至 v${upd.latestVersion}...`);
+          invokeSidecar({ action: 'installUpdate' });
+        };
+      } else {
+        actLink.textContent = '检查更新';
+        actLink.onclick = () => {
+          actLink.textContent = '检查中...';
+          invokeSidecar({ action: 'checkUpdate' });
+        };
+      }
+      uFoot.appendChild(actLink);
+      box.appendChild(uFoot);
     }
     if (isFirstMount) repositionStudio();
   };
@@ -3026,6 +3094,7 @@ function pageInstallBeautifyRuntime(owner, hash, bindingName, zhExact, zhPattern
       themeKey, monitorTab, monitorPeriod, monitorChartMode, monitorOverviewDonut,
       monitorHeatMode, monitorCol3Mode, monitorWorkspace, monitorSort,
       dash?.updatedAt || 0, dash?.totals?.[monitorPeriod]?.tokens || 0, quotas.length,
+      telemetry?.update?.status || '', telemetry?.update?.latestVersion || '',
     ]);
     if (!force && !firstMount && nextSig === monitorRenderSig) return;
     monitorRenderSig = nextSig;
@@ -3686,6 +3755,7 @@ function pageInstallBeautifyRuntime(owner, hash, bindingName, zhExact, zhPattern
             <button type="button" data-p="month" class="${monitorPeriod === 'month' ? 'on' : ''}">近 30 天</button>
             <button type="button" data-p="all" class="${monitorPeriod === 'all' ? 'on' : ''}">全部</button>
           </div>
+          ${telemetry?.update?.hasUpdate ? `<button type="button" class="act-btn" id="monUpdate" style="border-color:rgba(52,211,153,0.55);color:${dark ? '#6ee7b7' : '#047857'};" title="发现新版本 v${escHtml(telemetry.update.latestVersion)}，点击一键下载更新">${telemetry.update.status === 'updating' ? '更新中...' : `⬆ 更新 v${escHtml(telemetry.update.latestVersion)}`}</button>` : ''}
           <button type="button" class="act-btn" id="monRefresh">↻ 刷新</button>
           <button type="button" class="act-btn" id="monClose">✕ 返回对话</button>
         </div>
@@ -3708,6 +3778,12 @@ function pageInstallBeautifyRuntime(owner, hash, bindingName, zhExact, zhPattern
         renderMonitorOverlay(true);
       };
     }
+    container.querySelector('#monUpdate')?.addEventListener('click', ev => {
+      const btn = ev.currentTarget;
+      btn.textContent = '更新中...';
+      showToast(`正在从 GitHub 下载并安装 v${telemetry?.update?.latestVersion || ''}...`);
+      invokeSidecar({ action: 'installUpdate' });
+    });
     container.querySelector('#monRefresh').onclick = () => {
       invokeSidecar({ action: 'refreshDashboard' });
       showToast('已刷新用量统计');

@@ -8,7 +8,7 @@
   </p>
   <p>
     <img src="https://img.shields.io/badge/Antigravity-2.0%2B-6366f1?style=flat-square" alt="Antigravity 2.0+" />
-    <img src="https://img.shields.io/badge/Version-1.4.0-10b981?style=flat-square" alt="Version 1.4.0" />
+    <img src="https://img.shields.io/badge/Version-1.5.0-10b981?style=flat-square" alt="Version 1.5.0" />
     <img src="https://img.shields.io/badge/Dependencies-Zero-38bdf8?style=flat-square" alt="Zero Dependencies" />
     <img src="https://img.shields.io/badge/License-MIT-f59e0b?style=flat-square" alt="MIT License" />
   </p>
@@ -28,6 +28,7 @@
   - **Tools & Timings**: Side-by-side Token & Latency donuts, Top 10 Tool Calls (with duration), Top 10 Shell Commands, and Skills / Workspace breakdown.
   - **All Sessions**: Live search, workspace filters, 4 sort modes, circular SVG context gauges, and click-to-jump navigation.
 - **Auto Chinese UI (`zh-CN`) & Right-Click Reveal File**: Cleanly localizes UI chrome while skipping responses/code blocks, and adds right-click `Open in Folder`, `Open`, `Copy Path`, and `Open in Terminal` on any file reference.
+- **Built-in One-Click GitHub Release Updater**: Automatically checks `hongyanmo/agy-beautify` Releases, verifies SHA-256, atomically swaps plugin files with rollback protection, and hot-reloads in place without touching user settings or custom wallpapers.
 
 ## Installation
 
@@ -45,9 +46,10 @@ git clone https://github.com/hongyanmo/agy-beautify.git ~/.gemini/config/plugins
 
 ### Option 2: Release ZIP
 
-1. Download `agy-beautify-v1.4.0.zip` from **Releases**.
+1. Download the latest `agy-beautify-v1.5.0.zip` from **Releases**.
 2. Extract it into `~/.gemini/config/plugins/` so `plugin.json` lives at `~/.gemini/config/plugins/agy-beautify/plugin.json`.
 3. Enable **AGY Beautify** in Antigravity's **Customizations / Plugins** panel.
+4. From `v1.5.0` onward, click **Check Updates / One-Click Update** in Quick Studio, Monitor, or the Sidecar panel whenever a new GitHub Release is published.
 
 ## Tests
 

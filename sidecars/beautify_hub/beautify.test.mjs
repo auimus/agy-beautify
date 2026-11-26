@@ -16,6 +16,7 @@ import {
   saveCustomWallpaper,
 } from './settings.mjs';
 import { createTelemetryEngine, estimateRequestCostUsd, normalizeModelFamily, parseQuotaGroups } from './telemetry.mjs';
+import { applyUpdateFromZip, compareSemver, pickReleaseZipAsset } from './updater.mjs';
 
 test('i18n dictionary translates exact and patterned Antigravity UI strings', () => {
   assert.equal(translateUiText('New Conversation'), '新建对话');
@@ -154,4 +155,72 @@ test('telemetry engine estimates USD cost, cache savings, achievements and reads
   assert.equal(parsedQuotas[0].windows[0].label, '5 小时');
   assert.equal(parsedQuotas[0].windows[0].resetTime, '2026-11-26T17:20:03Z');
   assert.equal(parsedQuotas[0].windows[1].window, 'weekly');
+});
+
+test('updater compares semver, picks release zip assets, and applies atomic verified zip updates', async () => {
+  assert.equal(compareSemver('1.5.0', '1.4.0'), 1);
+  assert.equal(compareSemver('v1.10.0', '1.9.9'), 1);
+  assert.equal(compareSemver('v1.4.0', '1.4.0'), 0);
+  assert.equal(compareSemver('1.3.9', '1.4.0'), -1);
+
+  const asset = pickReleaseZipAsset({
+    tag_name: 'v1.5.0',
+    assets: [
+      { name: 'notes.txt', browser_download_url: 'https://example.com/notes.txt' },
+      {
+        name: 'agy-beautify-v1.5.0.zip',
+        browser_download_url: 'https://example.com/agy-beautify-v1.5.0.zip',
+        size: 102400,
+        digest: 'sha256:' + 'a'.repeat(64),
+      },
+    ],
+  });
+  assert.equal(asset.name, 'agy-beautify-v1.5.0.zip');
+  assert.equal(asset.sha256, 'a'.repeat(64));
+
+  // End-to-end atomic zip update test inside an isolated temp sandbox
+  const { execFileSync } = await import('node:child_process');
+  const { createHash } = await import('node:crypto');
+  const { existsSync, mkdirSync, readFileSync } = await import('node:fs');
+  const root = mkdtempSync(join(tmpdir(), 'agy-beautify-upd-test-'));
+  try {
+    const installedDir = join(root, 'installed');
+    mkdirSync(join(installedDir, 'sidecars', 'beautify_hub'), { recursive: true });
+    writeFileSync(join(installedDir, 'plugin.json'), JSON.stringify({ name: 'agy-beautify', version: '1.4.0' }));
+    writeFileSync(join(installedDir, 'sidecars', 'beautify_hub', 'server.mjs'), '// v1.4.0\n');
+
+    const pkgSrc = join(root, 'pkg', 'agy-beautify');
+    mkdirSync(join(pkgSrc, 'sidecars', 'beautify_hub'), { recursive: true });
+    writeFileSync(join(pkgSrc, 'plugin.json'), JSON.stringify({ name: 'agy-beautify', version: '1.5.0' }));
+    writeFileSync(join(pkgSrc, 'sidecars', 'beautify_hub', 'server.mjs'), '// v1.5.0 updated\n');
+
+    const zipPath = join(root, 'agy-beautify-v1.5.0.zip');
+    if (process.platform === 'win32') {
+      execFileSync(
+        'powershell',
+        ['-NoProfile', '-NonInteractive', '-Command', 'Compress-Archive -Path $env:SRC -DestinationPath $env:DST -Force'],
+        { env: { ...process.env, SRC: pkgSrc, DST: zipPath }, windowsHide: true },
+      );
+    } else {
+      execFileSync('zip', ['-qr', zipPath, 'agy-beautify'], { cwd: join(root, 'pkg') });
+    }
+    const sha = createHash('sha256').update(readFileSync(zipPath)).digest('hex');
+
+    // Wrong SHA-256 must fail before touching installedDir
+    await assert.rejects(
+      () => applyUpdateFromZip({ zipPath, pluginDir: installedDir, expectedSha256: '0'.repeat(64) }),
+      /SHA-256/,
+    );
+    assert.equal(JSON.parse(readFileSync(join(installedDir, 'plugin.json'), 'utf8')).version, '1.4.0');
+
+    // Valid SHA-256 upgrades files cleanly and removes .update-in-progress lock
+    const res = await applyUpdateFromZip({ zipPath, pluginDir: installedDir, expectedSha256: sha });
+    assert.equal(res.ok, true);
+    assert.equal(res.version, '1.5.0');
+    assert.equal(JSON.parse(readFileSync(join(installedDir, 'plugin.json'), 'utf8')).version, '1.5.0');
+    assert.equal(readFileSync(join(installedDir, 'sidecars', 'beautify_hub', 'server.mjs'), 'utf8'), '// v1.5.0 updated\n');
+    assert.equal(existsSync(join(installedDir, '.update-in-progress')), false);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });

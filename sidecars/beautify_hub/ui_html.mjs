@@ -274,17 +274,20 @@ export function createSidebarHtml() {
       <div class="brand">
         <div class="brand-icon">✦</div>
         <div>
-          <div class="brand-title">AGY Beautify</div>
+          <div class="brand-title">AGY Beautify <span id="hdrVer" class="muted" style="font-size:11px;font-weight:600;"></span></div>
           <div class="sub-txt">液态玻璃 · 主题壁纸 · 效率套件</div>
         </div>
       </div>
-      <div id="cdpBadge" class="badge">连接中...</div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <button id="hdrUpdBtn" type="button" class="badge ok" style="display:none;cursor:pointer;"></button>
+        <div id="cdpBadge" class="badge">连接中...</div>
+      </div>
     </div>
 
     <div class="tabs">
       <button type="button" class="tab active" data-tab="wallpaper">外观壁纸</button>
       <button type="button" class="tab" data-tab="dashboard">用量仪表</button>
-      <button type="button" class="tab" data-tab="ui">模型汉化</button>
+      <button type="button" class="tab" data-tab="ui">功能更新</button>
       <button type="button" class="tab" data-tab="reveal">右键定位</button>
     </div>
 
@@ -483,6 +486,27 @@ export function createSidebarHtml() {
           <button type="button" data-cap="auto">智能避让</button>
           <button type="button" data-cap="compact">极简图标</button>
           <button type="button" data-cap="full">完整数据</button>
+        </div>
+      </div>
+
+      <div class="card" id="updateCard">
+        <h3>
+          <span>版本与在线更新</span>
+          <span id="updCurrentVer" class="muted"></span>
+        </h3>
+        <div id="updStatusText" class="sub-txt">从 GitHub Releases 自动检查最新安装包，支持一键无损覆盖并热重载（保留全部个人设置与壁纸）。</div>
+        <div id="updNotesBox" style="display:none;margin-top:8px;padding:8px 10px;border-radius:9px;background:var(--agy-card-alt);border:1px solid var(--agy-border);font-size:11px;color:var(--agy-text-sub);max-height:130px;overflow-y:auto;white-space:pre-wrap;line-height:1.45;"></div>
+        <div class="row-actions" style="margin-top:9px;flex-wrap:wrap;">
+          <button id="btnCheckUpdate" type="button" class="btn">检查更新</button>
+          <button id="btnInstallUpdate" type="button" class="btn primary" style="display:none;">⚡ 一键更新并重载</button>
+          <a id="lnkReleasePage" class="btn" href="https://github.com/hongyanmo/agy-beautify/releases" target="_blank" rel="noreferrer">GitHub Releases</a>
+        </div>
+        <div class="toggle-row" style="margin-top:8px;border-top:1px solid var(--agy-border);padding-top:8px;">
+          <div>
+            <div class="toggle-title">启动时自动检查 GitHub 新版本</div>
+            <div class="toggle-sub">发现 Release 新版时在底栏浮窗与监控台顶部轻提示</div>
+          </div>
+          <input type="checkbox" data-setting="autoCheckUpdate" />
         </div>
       </div>
     </section>

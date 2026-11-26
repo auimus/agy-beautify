@@ -37,6 +37,8 @@ export const DEFAULT_SETTINGS = {
   wallpaperPosition: 'center', // 'center' | 'top' | 'bottom'
   wallpaperBrightness: 0.96,
   wallpaperSaturation: 1.12,
+  // Module 8: Built-in GitHub Release Auto-Updater
+  autoCheckUpdate: true,
   // History
   recentReveals: [],
 };
@@ -501,6 +503,7 @@ function sanitizeSettings(raw) {
     wallpaperPosition: oneOf(obj.wallpaperPosition, ['center', 'top', 'bottom'], DEFAULT_SETTINGS.wallpaperPosition),
     wallpaperBrightness: clamp(obj.wallpaperBrightness, 0.5, 1.35, DEFAULT_SETTINGS.wallpaperBrightness),
     wallpaperSaturation: clamp(obj.wallpaperSaturation, 0.6, 1.6, DEFAULT_SETTINGS.wallpaperSaturation),
+    autoCheckUpdate: bool('autoCheckUpdate', DEFAULT_SETTINGS.autoCheckUpdate),
     recentReveals: history,
   };
 }

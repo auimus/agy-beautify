@@ -32,7 +32,7 @@ function detectHostIsDark() {
     const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
     return (0.299 * r + 0.587 * g + 0.114 * b) < 130;
   }
-  const rgb = /rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i.exec(bg);
+  const rgb = /rgba?\\(\\s*(\\d+)\\s*,\\s*(\\d+)\\s*,\\s*(\\d+)/i.exec(bg);
   if (rgb) {
     return (0.299 * +rgb[1] + 0.587 * +rgb[2] + 0.114 * +rgb[3]) < 130;
   }
@@ -67,6 +67,59 @@ for (const pill of document.querySelectorAll('#wpFilters .f-pill')) {
     for (const p of document.querySelectorAll('#wpFilters .f-pill')) p.classList.toggle('active', p === pill);
     if (latestData) renderWallpapers(latestData);
   };
+}
+
+function renderUpdateStatus(upd) {
+  if (!upd) return;
+  const curVer = upd.currentVersion ? 'v' + upd.currentVersion : '';
+  const hdrVer = document.getElementById('hdrVer');
+  if (hdrVer) hdrVer.textContent = curVer;
+  const updCur = document.getElementById('updCurrentVer');
+  if (updCur) updCur.textContent = curVer;
+  const hdrBtn = document.getElementById('hdrUpdBtn');
+  const stEl = document.getElementById('updStatusText');
+  const notesEl = document.getElementById('updNotesBox');
+  const instBtn = document.getElementById('btnInstallUpdate');
+  const chkBtn = document.getElementById('btnCheckUpdate');
+  const lnk = document.getElementById('lnkReleasePage');
+  if (lnk && upd.releaseUrl) lnk.href = upd.releaseUrl;
+  if (hdrBtn) {
+    if (upd.hasUpdate && upd.latestVersion) {
+      hdrBtn.style.display = 'inline-flex';
+      hdrBtn.textContent = upd.status === 'updating' ? '更新中...' : '⬆ v' + upd.latestVersion;
+    } else {
+      hdrBtn.style.display = 'none';
+    }
+  }
+  if (chkBtn) chkBtn.disabled = upd.status === 'checking' || upd.status === 'updating';
+  if (instBtn) {
+    instBtn.style.display = upd.hasUpdate ? 'inline-flex' : 'none';
+    instBtn.disabled = upd.status === 'updating';
+    instBtn.textContent = upd.status === 'updating'
+      ? '正在下载安装...'
+      : '⚡ 一键更新至 v' + (upd.latestVersion || '');
+  }
+  if (stEl) {
+    if (upd.status === 'checking') stEl.textContent = '正在连接 GitHub 检查最新 Release...';
+    else if (upd.status === 'updating') stEl.textContent = '正在下载更新包并校验 SHA-256，完成后自动热重载...';
+    else if (upd.status === 'updated') stEl.textContent = '✅ 已更新至 v' + upd.currentVersion + '，正在热重载生效...';
+    else if (upd.status === 'available') {
+      const dt = upd.publishedAt ? ' · 发布于 ' + upd.publishedAt.slice(0, 10) : '';
+      stEl.textContent = '发现新版本 v' + upd.latestVersion + '（当前 ' + curVer + '）' + dt + '。点击下方按钮即可自动覆盖并重载，个人设置与壁纸完全保留。';
+    } else if (upd.status === 'up-to-date') {
+      stEl.textContent = '✓ 当前已是最新版本 ' + curVer + '（来自 GitHub Releases）。';
+    } else if (upd.status === 'error') {
+      stEl.textContent = '检查/更新失败：' + (upd.error || '网络异常');
+    }
+  }
+  if (notesEl) {
+    if (upd.hasUpdate && upd.releaseNotes) {
+      notesEl.style.display = 'block';
+      notesEl.textContent = upd.releaseNotes;
+    } else {
+      notesEl.style.display = 'none';
+    }
+  }
 }
 
 function renderDashboard(data) {
@@ -201,6 +254,8 @@ function renderDashboard(data) {
       mBox.appendChild(row);
     }
   }
+
+  renderUpdateStatus(data.update);
 }
 
 function renderWallpapers(data) {
@@ -488,6 +543,38 @@ document.getElementById('btnImportPath').onclick = async () => {
 
 document.getElementById('btnCompactNow')?.addEventListener('click', async () => {
   await post('/api/compact', {});
+});
+
+document.getElementById('hdrUpdBtn')?.addEventListener('click', () => {
+  for (const b of document.querySelectorAll('.tab')) b.classList.toggle('active', b.dataset.tab === 'ui');
+  for (const p of document.querySelectorAll('.panel')) p.classList.toggle('active', p.id === 'tab-ui');
+  document.getElementById('updateCard')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+});
+
+document.getElementById('btnCheckUpdate')?.addEventListener('click', async () => {
+  const stEl = document.getElementById('updStatusText');
+  if (stEl) stEl.textContent = '正在连接 GitHub 检查最新 Release...';
+  const res = await post('/api/update/check', { force: true });
+  if (res?.update) {
+    if (latestData) latestData.update = res.update;
+    renderUpdateStatus(res.update);
+  } else {
+    await refresh(false);
+  }
+});
+
+document.getElementById('btnInstallUpdate')?.addEventListener('click', async () => {
+  const stEl = document.getElementById('updStatusText');
+  const btn = document.getElementById('btnInstallUpdate');
+  if (btn) { btn.disabled = true; btn.textContent = '正在下载安装...'; }
+  if (stEl) stEl.textContent = '正在从 GitHub Release 下载更新包并校验完整性...';
+  const res = await post('/api/update/install', {});
+  if (res?.update) {
+    if (latestData) latestData.update = res.update;
+    renderUpdateStatus(res.update);
+  } else if (stEl && res?.message) {
+    stEl.textContent = res.message;
+  }
 });
 
 document.getElementById('btnQuickReveal').onclick = async () => {
