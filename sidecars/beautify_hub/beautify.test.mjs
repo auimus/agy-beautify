@@ -42,6 +42,7 @@ test('i18n dictionary translates exact and patterned Antigravity UI strings', ()
     translateUiText('You have used some of your 5-hour limit, it will fully refresh in 2 hours, 45 minutes.'),
     '您已使用部分 5 小时配额，将在 2 小时 45 分钟后完全刷新。',
   );
+  assert.equal(translateUiText('This Conversation'), '当前会话');
   assert.equal(translateUiText('Auto'), '自动');
   assert.equal(translateUiText('Turbo'), '极速');
   assert.equal(translateUiText('Request Review'), '请求审查');

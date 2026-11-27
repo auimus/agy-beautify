@@ -1,7 +1,7 @@
 {
   "name": "agy-beautify",
   "displayName": "AGY Beautify",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "All-in-one Antigravity 2.0 beautification & productivity suite: Liquid Glass/Frosted/Solid themes, system font scanner with custom UI/code font family & weight (100–900), enhanced 2,750+ rule Chinese localization, Gemini Starlight effort slider, live quota & auto-compact (/compact), full-pane Token & USD Monitor, right-click reveal file, and one-click GitHub Release updater.",
   "logo": "assets/logo.svg",
   "suggestedPrompts": [

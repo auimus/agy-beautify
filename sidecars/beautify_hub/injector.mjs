@@ -439,14 +439,34 @@ function pageInstallBeautifyRuntime(owner, hash, bindingName, zhExact, zhPattern
     if (hasWp) {
       cssParts.push(`
         html, body { background-color: transparent !important; }
-        #root, .agy-shell, .agy-inset-shell { background: transparent !important; }
+        html body [data-agy-canvas="1"] {
+          background: transparent !important;
+          background-color: transparent !important;
+          background-image: none !important;
+        }
+        #root,
+        .agy-shell,
+        .agy-inset-shell,
+        .agy-sheet,
+        .browser-hole-opaque,
+        .browser-hole-opaque > div,
+        .browser-hole-opaque > .flex-1.min-h-0.flex.flex-col,
+        [data-testid="sidebar-split"],
+        [data-testid="sidebar-split"] > div:last-child,
+        [data-testid="aux-pane-split"],
+        [data-testid="aux-pane-split"] > div:first-child,
+        [data-testid="aux-pane-split"] > div:first-child > div,
+        [data-testid="conversation-view"],
+        [data-testid="conversation-view"] > div:not([role="dialog"]):not([role="menu"]):not([role="listbox"]) {
+          background-color: transparent !important;
+          background-image: none !important;
+        }
         #root { position: relative !important; z-index: 1 !important; }
-        .browser-hole-opaque > .flex-1.min-h-0.flex.flex-col { background: transparent !important; }
         [data-testid="conversation-list-sidebar"],
         [data-testid="conversation-list-sidebar"] .bg-sidebar {
           background: transparent !important;
         }
-        /* Remove harsh horizontal white/black scroll fade band above the floating composer */
+        /* Keep split-pane dividers subtle and remove harsh horizontal scroll fade band above composer */
         .absolute.bottom-0.z-10.pointer-events-none.left-4,
         .absolute.bottom-0.z-10.pointer-events-none {
           background: transparent !important;
@@ -781,6 +801,75 @@ function pageInstallBeautifyRuntime(owner, hash, bindingName, zhExact, zhPattern
     }
 
     wpStyle.textContent = cssParts.join('\n');
+    syncTransparentCanvas();
+  };
+
+  const CANVAS_PROTECT_SEL = [
+    '[role="dialog"]',
+    '[role="menu"]',
+    '[role="listbox"]',
+    'button',
+    'pre',
+    'code',
+    '.surface-composer-card',
+    '.artifact-card',
+    '[data-testid="planner-response-text"]',
+    '[data-testid="user-message-bubble"]',
+    '.agy-user-bubble',
+    '[data-testid="step-plan"]',
+    '[data-testid="changed-files-card"]',
+    '[data-testid="changed-files-card-header"]',
+    '[data-testid="sidebar-split"] > div:first-child',
+    '[data-testid="aux-pane-split"] > div:last-child',
+    '.shrink-0.flex.bg-sidebar',
+  ].join(', ');
+
+  const clearTransparentCanvas = () => {
+    for (const el of document.querySelectorAll('[data-agy-canvas="1"]')) {
+      el.removeAttribute('data-agy-canvas');
+    }
+  };
+
+  const isOpaqueBg = bg => {
+    if (!bg || bg === 'transparent' || bg === 'rgba(0, 0, 0, 0)') return false;
+    const m = /^rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*([0-9.]+)\s*\)$/i.exec(bg.trim());
+    if (m) return Number(m[1]) > 0.02;
+    return /^rgb\(/i.test(bg.trim());
+  };
+
+  const syncTransparentCanvas = () => {
+    const hasWp = Boolean(settings.wallpaperId && settings.wallpaperId !== 'none' && wallpaperDataUri);
+    if (disposed || !hasWp) {
+      clearTransparentCanvas();
+      return;
+    }
+    const anchors = [];
+    const inputBox = document.querySelector('[data-testid="agent-input-box"]');
+    if (inputBox) anchors.push(inputBox);
+    const convView = document.querySelector('[data-testid="conversation-view"]');
+    if (convView) anchors.push(convView);
+    const replies = document.querySelectorAll('[data-testid="planner-response-text"], [data-testid="agent-response"]');
+    if (replies.length) anchors.push(replies[replies.length - 1]);
+
+    const visited = new Set();
+    for (const anchor of anchors) {
+      let el = anchor === convView ? anchor : anchor.parentElement;
+      while (el && el !== document.body && el !== document.documentElement) {
+        if (visited.has(el)) break;
+        visited.add(el);
+        const protectedSelf = el.matches?.(CANVAS_PROTECT_SEL);
+        const insideProtected = el.closest?.('[role="dialog"], [role="menu"], [role="listbox"], [data-testid="sidebar-split"] > div:first-child, [data-testid="aux-pane-split"] > div:last-child');
+        if (!protectedSelf && !insideProtected && !el.hasAttribute('data-agy-canvas')) {
+          try {
+            const st = getComputedStyle(el);
+            if (isOpaqueBg(st.backgroundColor)) {
+              el.setAttribute('data-agy-canvas', '1');
+            }
+          } catch {}
+        }
+        el = el.parentElement;
+      }
+    }
   };
 
   // ---------------- Module 2: Auto Chinese Localization ----------------
@@ -793,12 +882,13 @@ function pageInstallBeautifyRuntime(owner, hash, bindingName, zhExact, zhPattern
   const origTextMap = new WeakMap();
   const origAttrMap = new WeakMap();
   const observedShadowRoots = new WeakSet();
+  const trackedShadowRoots = new Set();
   const TRANSLATABLE_ATTRS = ['aria-label', 'placeholder', 'title', 'data-placeholder', 'aria-placeholder', 'data-tooltip'];
   const i18nBaseSkip = '[data-testid="planner-response-text"], [data-testid="user-message-content"], [data-testid="user-input-step"], code, pre, .monaco-editor, .xterm, .terminal, .output-view, .debug-console, #agy-beautify-model-host, #agy-beautify-studio-host, #agy-beautify-capsule-host, #agy-beautify-menu-host, #agy-beautify-toast-host, #agy-beautify-monitor-nav, #agy-beautify-monitor-overlay';
-  const i18nTextOnlySkip = 'textarea, input, [contenteditable="true"], svg, script, style, [class*="material-symbols"], [class*="material-icons"], [class*="codicon"], .google-symbols';
+  const i18nTextOnlySkip = 'textarea, input, [contenteditable="true"], svg, script, style, .material-symbols-outlined, .material-symbols-rounded, .material-symbols-sharp, .material-icons, .material-icons-outlined, .material-icons-round, .material-icons-sharp, .codicon, .google-symbols';
   const i18nTextSkipSelector = `${i18nBaseSkip}, ${i18nTextOnlySkip}`;
   const i18nAttrSkipSelector = i18nBaseSkip;
-  const i18nMenuAllowSelector = '[role="menu"], [role="menuitem"], [role="menuitemradio"], [role="menuitemcheckbox"], [role="listbox"], [role="option"]';
+  const i18nMenuAllowSelector = '[role="menu"], [role="menuitem"], [role="menuitemradio"], [role="menuitemcheckbox"], [role="listbox"], [role="option"], [role="radiogroup"], [role="radio"], [role="dialog"], [data-radix-popper-content-wrapper], [data-floating-ui-portal], [popover]';
 
   const normUiStr = s => s.replace(/[\u200B-\u200D\uFEFF]/g, '').replace(/\s+/g, ' ').trim().replace(/[‘’]/g, "'").replace(/[“”]/g, '"');
 
@@ -886,58 +976,86 @@ function pageInstallBeautifyRuntime(owner, hash, bindingName, zhExact, zhPattern
 
   const localizeTree = root => {
     if (!root || settings.autoChinese === false) return;
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
+    let walker;
+    try {
+      const doc = root.ownerDocument || document;
+      walker = doc.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
+    } catch {
+      return;
+    }
     let node;
     while ((node = walker.nextNode())) {
-      if (node.nodeType === Node.TEXT_NODE) {
-        const parent = node.parentElement;
-        if (!parent) continue;
-        const inMenu = Boolean(parent.closest(i18nMenuAllowSelector));
-        if (inMenu) {
-          if (parent.closest(i18nTextOnlySkip) || parent.closest('code, pre')) continue;
-        } else if (parent.closest(i18nTextSkipSelector)) {
-          continue;
-        }
-        localizeTextNode(node, parent);
-      } else if (node.nodeType === Node.ELEMENT_NODE) {
-        if (isBeautifyOwnHost(node)) continue;
-        localizeElementAttrs(node);
-        // Handle adjacent split text nodes inside a single UI element
-        if (node.childNodes.length >= 2 && !node.closest?.(i18nTextSkipSelector)) {
-          let run = [];
-          const flushRun = () => {
-            if (run.length >= 2) {
-              const joined = run.map(t => t.nodeValue || '').join('');
-              const tr = translateStr(joined);
-              if (tr && tr !== joined) {
-                for (let i = 0; i < run.length; i++) {
-                  if (!origTextMap.has(run[i])) origTextMap.set(run[i], run[i].nodeValue || '');
-                  run[i].nodeValue = i === 0 ? tr : '';
+      try {
+        if (node.nodeType === Node.TEXT_NODE) {
+          const parent = node.parentElement;
+          if (!parent) continue;
+          const inMenu = Boolean(parent.closest?.(i18nMenuAllowSelector));
+          if (inMenu) {
+            if (parent.closest?.(i18nTextOnlySkip) || parent.closest?.('code, pre')) continue;
+          } else if (parent.closest?.(i18nTextSkipSelector)) {
+            continue;
+          }
+          localizeTextNode(node, parent);
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+          if (isBeautifyOwnHost(node)) continue;
+          localizeElementAttrs(node);
+          // Handle adjacent split text nodes inside a single UI element
+          if (node.childNodes.length >= 2 && !node.closest?.(i18nTextSkipSelector)) {
+            let run = [];
+            const flushRun = () => {
+              if (run.length >= 2) {
+                const joined = run.map(t => t.nodeValue || '').join('');
+                const tr = translateStr(joined);
+                if (tr && tr !== joined) {
+                  for (let i = 0; i < run.length; i++) {
+                    if (!origTextMap.has(run[i])) origTextMap.set(run[i], run[i].nodeValue || '');
+                    run[i].nodeValue = i === 0 ? tr : '';
+                  }
                 }
               }
+              run = [];
+            };
+            for (const ch of node.childNodes) {
+              if (ch.nodeType === Node.TEXT_NODE) run.push(ch);
+              else flushRun();
             }
-            run = [];
-          };
-          for (const ch of node.childNodes) {
-            if (ch.nodeType === Node.TEXT_NODE) run.push(ch);
-            else flushRun();
+            flushRun();
           }
-          flushRun();
-        }
-        if (node.shadowRoot && !isBeautifyOwnHost(node)) {
-          if (!observedShadowRoots.has(node.shadowRoot)) {
-            observedShadowRoots.add(node.shadowRoot);
-            try { i18nObserver.observe(node.shadowRoot, i18nObsOpts); } catch {}
+          if (node.shadowRoot && !isBeautifyOwnHost(node)) {
+            if (!observedShadowRoots.has(node.shadowRoot)) {
+              observedShadowRoots.add(node.shadowRoot);
+              trackedShadowRoots.add(node.shadowRoot);
+              try { i18nObserver.observe(node.shadowRoot, i18nObsOpts); } catch {}
+            }
+            localizeTree(node.shadowRoot);
           }
-          localizeTree(node.shadowRoot);
+          if (node.tagName === 'IFRAME') {
+            try {
+              const idoc = node.contentDocument;
+              if (idoc?.documentElement) {
+                if (!observedShadowRoots.has(idoc.documentElement)) {
+                  observedShadowRoots.add(idoc.documentElement);
+                  i18nObserver.observe(idoc.documentElement, i18nObsOpts);
+                }
+                localizeTree(idoc.documentElement);
+              }
+            } catch {}
+          }
         }
-      }
+      } catch {}
     }
   };
 
   const runLocalization = (root = document.documentElement) => {
     if (!root || settings.autoChinese === false) return;
     localizeTree(root);
+    for (const sr of [...trackedShadowRoots]) {
+      if (!sr.host?.isConnected) {
+        trackedShadowRoots.delete(sr);
+        continue;
+      }
+      if (!isBeautifyOwnHost(sr.host)) localizeTree(sr);
+    }
   };
 
   const restoreTree = root => {
@@ -991,24 +1109,50 @@ function pageInstallBeautifyRuntime(owner, hash, bindingName, zhExact, zhPattern
 
   let i18nRaf = 0;
   let i18nBurstTimer = null;
+  let i18nBurstTimer2 = null;
   const scheduleLocalization = (withBurst = false) => {
     if (disposed || settings.autoChinese === false) return;
     if (!i18nRaf) {
       i18nRaf = requestAnimationFrame(() => {
         i18nRaf = 0;
-        if (!disposed && settings.autoChinese !== false) runLocalization(document.documentElement);
+        if (!disposed) {
+          syncTransparentCanvas();
+          if (settings.autoChinese !== false) runLocalization(document.documentElement);
+        }
       });
     }
     if (withBurst) {
       clearTimeout(i18nBurstTimer);
+      clearTimeout(i18nBurstTimer2);
       i18nBurstTimer = setTimeout(() => {
         if (!disposed && settings.autoChinese !== false) runLocalization(document.documentElement);
-      }, 70);
+      }, 60);
+      i18nBurstTimer2 = setTimeout(() => {
+        if (!disposed && settings.autoChinese !== false) runLocalization(document.documentElement);
+      }, 220);
     }
   };
 
   const i18nObserver = new MutationObserver(() => scheduleLocalization(false));
   i18nObserver.observe(document.documentElement, i18nObsOpts);
+
+  let origAttachShadow = null;
+  try {
+    origAttachShadow = Element.prototype.attachShadow;
+    Element.prototype.attachShadow = function (...args) {
+      const sr = origAttachShadow.apply(this, args);
+      if (sr && !isBeautifyOwnHost(this)) {
+        trackedShadowRoots.add(sr);
+        if (!observedShadowRoots.has(sr)) {
+          observedShadowRoots.add(sr);
+          try { i18nObserver.observe(sr, i18nObsOpts); } catch {}
+        }
+        scheduleLocalization(true);
+      }
+      return sr;
+    };
+  } catch {}
+
   const onI18nInteraction = () => scheduleLocalization(true);
   window.addEventListener('pointerup', onI18nInteraction, true);
   window.addEventListener('click', onI18nInteraction, true);
@@ -2395,7 +2539,7 @@ function pageInstallBeautifyRuntime(owner, hash, bindingName, zhExact, zhPattern
       }
       if ('autoChinese' in patch) {
         if (settings.autoChinese === false && prevZh !== false) restoreLocalization();
-        else if (settings.autoChinese !== false) runLocalization(document.body);
+        else if (settings.autoChinese !== false) runLocalization(document.documentElement);
       }
       if (settings.geminiModelPicker === false && modelPopoverHost) closeModelPopover();
 
@@ -4283,6 +4427,7 @@ function pageInstallBeautifyRuntime(owner, hash, bindingName, zhExact, zhPattern
     syncContextCapsule();
     syncMonitorNav();
     syncTitleBarOverlay(false);
+    syncTransparentCanvas();
     if (settings.autoChinese !== false) runLocalization(document.documentElement);
     if (settings.wallpaperId && settings.wallpaperId !== 'none' && wallpaperDataUri && (!wpLayer || !wpLayer.isConnected)) {
       applyWallpaperAndTheme();
@@ -4322,7 +4467,7 @@ function pageInstallBeautifyRuntime(owner, hash, bindingName, zhExact, zhPattern
         }
       }
       if (settings.autoChinese === false && prevZh !== false) restoreLocalization();
-      else if (settings.autoChinese !== false) runLocalization(document.body);
+      else if (settings.autoChinese !== false) runLocalization(document.documentElement);
       applyWallpaperAndTheme();
       syncContextCapsule();
       syncMonitorNav();
@@ -4370,7 +4515,12 @@ function pageInstallBeautifyRuntime(owner, hash, bindingName, zhExact, zhPattern
       clearTimeout(toastTimer);
       if (i18nRaf) cancelAnimationFrame(i18nRaf);
       clearTimeout(i18nBurstTimer);
+      clearTimeout(i18nBurstTimer2);
       i18nObserver.disconnect();
+      if (origAttachShadow) {
+        try { Element.prototype.attachShadow = origAttachShadow; } catch {}
+      }
+      trackedShadowRoots.clear();
       window.removeEventListener('pointerup', onI18nInteraction, true);
       window.removeEventListener('click', onI18nInteraction, true);
       window.removeEventListener('keydown', onI18nInteraction, true);
@@ -4387,6 +4537,7 @@ function pageInstallBeautifyRuntime(owner, hash, bindingName, zhExact, zhPattern
       toastHost?.remove();
       wpLayer?.remove();
       wpStyle?.remove();
+      clearTransparentCanvas();
       document.documentElement.removeAttribute('data-agy-beautify-popover-open');
       document.documentElement.removeAttribute('data-agy-monitor-open');
       document.body.classList.toggle('dark', nativeBodyClasses.dark);

@@ -76,6 +76,10 @@ const LOCAL_ZH_EXACT = {
   'Turbo': '极速',
   'Request Review': '请求审查',
   'Local Permissions': '本地权限',
+  'This Conversation': '当前会话',
+  'This conversation': '当前会话',
+  'Only this conversation uses this preset.': '仅当前会话使用此预设.',
+  'Your This Computer setting': '你的“此计算机”设置',
   'Workspace Name': '工作区名称',
   'Worktree Name': '工作树名称',
   'Replace With New': '替换为新会话',
@@ -175,6 +179,7 @@ for (const [k, v] of Object.entries(ZH_EXACT)) {
 export const ZH_PATTERNS = [
   // Core AGY Beautify patterns
   ['^Worked for (.+)$', '已工作 $1'],
+  ['^Your (.+) setting$', '你的“$1”设置'],
   ['^Thought for (.+)$', '已思考 $1'],
   ['^(\\d+) files? changed$', '已变更 $1 个文件'],
   ['^(\\d+)/(\\d+) steps$', '$1/$2 步骤'],

@@ -54,7 +54,7 @@
 
     <!-- Category Badge -->
     <rect x="70" y="11" width="388" height="32" rx="16" fill="#1E293B" fill-opacity="0.82" stroke="#6366F1" stroke-opacity="0.45" stroke-width="1.2"/>
-    <text x="264" y="33" text-anchor="middle" fill="#C7D2FE" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18" font-weight="600">ANTIGRAVITY 2.0 · PLUGIN · v1.6.0</text>
+    <text x="264" y="33" text-anchor="middle" fill="#C7D2FE" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18" font-weight="600">ANTIGRAVITY 2.0 · PLUGIN · v1.6.1</text>
 
     <!-- Display Name -->
     <text x="0" y="124" fill="#F8FAFC" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="56" font-weight="800" letter-spacing="-0.5">AGY Beautify</text>
