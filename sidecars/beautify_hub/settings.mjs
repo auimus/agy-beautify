@@ -37,6 +37,12 @@ export const DEFAULT_SETTINGS = {
   wallpaperPosition: 'center', // 'center' | 'top' | 'bottom'
   wallpaperBrightness: 0.96,
   wallpaperSaturation: 1.12,
+  // Module 6: Custom System Font & Font Weight
+  customFontEnabled: false,
+  uiFontFamily: '',
+  uiFontWeight: 400, // 100..900
+  codeFontFamily: '',
+  codeFontWeight: 400, // 100..900
   // Module 8: Built-in GitHub Release Auto-Updater
   autoCheckUpdate: true,
   // History
@@ -503,6 +509,15 @@ function sanitizeSettings(raw) {
     wallpaperPosition: oneOf(obj.wallpaperPosition, ['center', 'top', 'bottom'], DEFAULT_SETTINGS.wallpaperPosition),
     wallpaperBrightness: clamp(obj.wallpaperBrightness, 0.5, 1.35, DEFAULT_SETTINGS.wallpaperBrightness),
     wallpaperSaturation: clamp(obj.wallpaperSaturation, 0.6, 1.6, DEFAULT_SETTINGS.wallpaperSaturation),
+    customFontEnabled: bool('customFontEnabled', DEFAULT_SETTINGS.customFontEnabled),
+    uiFontFamily: typeof obj.uiFontFamily === 'string'
+      ? obj.uiFontFamily.replace(/[{};<>\\\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160)
+      : DEFAULT_SETTINGS.uiFontFamily,
+    uiFontWeight: Math.round(clamp(obj.uiFontWeight, 100, 900, DEFAULT_SETTINGS.uiFontWeight) / 50) * 50,
+    codeFontFamily: typeof obj.codeFontFamily === 'string'
+      ? obj.codeFontFamily.replace(/[{};<>\\\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160)
+      : DEFAULT_SETTINGS.codeFontFamily,
+    codeFontWeight: Math.round(clamp(obj.codeFontWeight, 100, 900, DEFAULT_SETTINGS.codeFontWeight) / 50) * 50,
     autoCheckUpdate: bool('autoCheckUpdate', DEFAULT_SETTINGS.autoCheckUpdate),
     recentReveals: history,
   };

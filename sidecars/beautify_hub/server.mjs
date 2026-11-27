@@ -2,6 +2,7 @@ import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from 'n
 import { homedir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { getCachedSystemFonts, listSystemFonts } from './fonts.mjs';
 import { startBeautifyInjector } from './injector.mjs';
 import { openTargetWithDefaultApp, openTerminalInFolder, revealInFileManager } from './path_utils.mjs';
 import {
@@ -149,6 +150,12 @@ function handleInvoke(payload = {}) {
   }
 
   // Quick Studio & In-Page Settings Actions
+  if (action === 'refreshFonts') {
+    return listSystemFonts({ forceRefresh: true }).then(fonts => {
+      void injectorRef?.tick();
+      return { message: `已刷新系统字体（共 ${fonts.length} 款）`, isError: false };
+    });
+  }
   if (action === 'refreshDashboard') {
     readUsageCached(true);
     void injectorRef?.tick();
@@ -229,6 +236,7 @@ const isMain = (() => {
 
 if (isMain) {
   installEpipeGuard();
+  void listSystemFonts().then(() => { void injectorRef?.tick(); });
 
   const injector = startBeautifyInjector({
     productRoots: getProductRoots(process.env.ANTIGRAVITY_EXECUTABLE_DATA_DIR),
@@ -237,6 +245,7 @@ if (isMain) {
     getWallpaperDataUri: id => resolveWallpaperDataUri(id),
     getWallpaperCatalog: () => getWallpaperCatalogForPage(),
     getPresets: () => PRESETS.map(({ id, name, desc, icon, patch }) => ({ id, name, desc, icon, patch })),
+    getFontCatalog: () => getCachedSystemFonts(),
     getTelemetry: async convId => ({
       context: telemetryEngine.getConversationMetrics(convId),
       quotas: await telemetryEngine.fetchQuota(),
@@ -276,18 +285,26 @@ if (isMain) {
     app.api('/api/state', async data => {
       const convId = data?.conversationId || app.config?.conversationId || '';
       const wallpapers = listWallpapers().map(({ id, name, tone, builtin }) => ({ id, name, tone, builtin }));
+      const systemFonts = await listSystemFonts();
       return {
         ...lastStatus,
         cdpState: injector.status(),
         attachedCount: injector.attachedPages(),
         settings: settingsStore.read(),
         wallpapers,
+        systemFonts,
         presets: PRESETS.map(({ id, name, desc, icon }) => ({ id, name, desc, icon })),
         context: telemetryEngine.getConversationMetrics(convId),
         quotas: await telemetryEngine.fetchQuota(),
         usage: data?.includeUsage ? readUsageCached(false) : cachedUsage,
         update: updater.getState(),
       };
+    }, 'POST');
+
+    app.api('/api/fonts', async data => {
+      const systemFonts = await listSystemFonts({ forceRefresh: Boolean(data?.refresh) });
+      void injector.tick();
+      return { ok: true, count: systemFonts.length, systemFonts };
     }, 'POST');
 
     app.api('/api/update/check', async data => {

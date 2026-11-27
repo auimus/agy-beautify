@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
+import { buildCssFontStack, listSystemFonts, normalizeFontList, sanitizeFontFamily } from './fonts.mjs';
 import { translateUiText } from './i18n_dict.mjs';
 import { buildExplorerSelectArgs, resolveRevealTarget, uriOrPathToLocal } from './path_utils.mjs';
 import {
@@ -23,6 +24,29 @@ test('i18n dictionary translates exact and patterned Antigravity UI strings', ()
   assert.equal(translateUiText('Worked for 18s'), '已工作 18s');
   assert.equal(translateUiText('3 files changed'), '已变更 3 个文件');
   assert.equal(translateUiText('4/5 steps'), '4/5 步骤');
+  assert.equal(translateUiText('Browse the Marketplace'), '浏览插件市场');
+  assert.equal(translateUiText('New Conversation (Ctrl+N)'), '新建对话 (Ctrl+N)');
+  assert.equal(translateUiText('12 tools'), '12 个工具');
+  assert.equal(translateUiText('70% left'), '70% 剩余');
+  assert.equal(translateUiText('Every 15 minutes'), '每 15 分钟');
+  assert.equal(translateUiText('Publish feat/i18n to origin'), '将 feat/i18n 发布到 origin');
+  assert.equal(
+    translateUiText("When toggled on, Antigravity will use your AI credits to fulfill model requests once you're out of model quota. Antigravity will always use your model quota first before using AI credits."),
+    '启用后，当模型配额用尽时，Antigravity 将使用您的 AI 额度处理模型请求。系统会优先使用模型配额，之后才使用 AI 额度。',
+  );
+  assert.equal(
+    translateUiText('You have used some of your weekly limit, it will fully refresh in 6 days, 3 hours.'),
+    '您已使用部分每周配额，将在 6 天 3 小时后完全刷新。',
+  );
+  assert.equal(
+    translateUiText('You have used some of your 5-hour limit, it will fully refresh in 2 hours, 45 minutes.'),
+    '您已使用部分 5 小时配额，将在 2 小时 45 分钟后完全刷新。',
+  );
+  assert.equal(translateUiText('Auto'), '自动');
+  assert.equal(translateUiText('Turbo'), '极速');
+  assert.equal(translateUiText('Request Review'), '请求审查');
+  assert.equal(translateUiText('Every command requires approval.'), '每个命令都需要审批.');
+  assert.equal(translateUiText('Mark Unread'), '标记为未读');
   assert.equal(translateUiText('Unrelated arbitrary code foo()'), null);
 });
 
@@ -77,6 +101,23 @@ test('settings store persists Liquid Glass, sidebar monitor, presets and migrate
     assert.equal(store.read().autoCompactThreshold, 40);
     store.update({ autoCompactThreshold: 120 });
     assert.equal(store.read().autoCompactThreshold, 95);
+
+    // Custom system font & weight clamping + sanitization check
+    assert.equal(init.customFontEnabled, false);
+    assert.equal(init.uiFontFamily, '');
+    assert.equal(init.uiFontWeight, 400);
+    store.update({
+      customFontEnabled: true,
+      uiFontFamily: 'Noto Sans SC; } body { display:none',
+      uiFontWeight: 525,
+      codeFontFamily: 'Maple Mono',
+      codeFontWeight: 1200,
+    });
+    assert.equal(store.read().customFontEnabled, true);
+    assert.ok(!/[{};<>]/.test(store.read().uiFontFamily));
+    assert.equal(store.read().uiFontWeight, 550);
+    assert.equal(store.read().codeFontFamily, 'Maple Mono');
+    assert.equal(store.read().codeFontWeight, 900);
 
     // Legacy gta6 migration check
     store.update({ wallpaperId: 'gta6', activePreset: 'gta-neon' });
@@ -223,4 +264,20 @@ test('updater compares semver, picks release zip assets, and applies atomic veri
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+test('system font scanner enumerates local fonts and builds safe CSS stacks', async () => {
+  assert.equal(sanitizeFontFamily('Microsoft YaHei; } <script>'), 'Microsoft YaHei script');
+  assert.equal(
+    buildCssFontStack('Noto Sans SC, Segoe UI', 'sans-serif'),
+    '"Noto Sans SC", "Segoe UI", sans-serif',
+  );
+  const normalized = normalizeFontList(['Maple Mono', 'maple mono', '微软雅黑', 'Segoe UI']);
+  assert.equal(normalized.length, 3);
+  assert.equal(normalized.find(f => f.name === 'Maple Mono')?.isMono, true);
+  assert.equal(normalized.find(f => f.name === '微软雅黑')?.isCjk, true);
+
+  const systemFonts = await listSystemFonts();
+  assert.ok(Array.isArray(systemFonts) && systemFonts.length > 10);
+  assert.ok(systemFonts.every(f => typeof f.name === 'string' && f.name.length > 0));
 });

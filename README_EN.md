@@ -1,55 +1,102 @@
-<div align="center">
-  <img src="assets/logo.svg" width="76" height="76" alt="AGY Beautify Logo" />
-  <h1>AGY Beautify</h1>
-  <p><strong>All-in-One Liquid Glass Theme, Auto-Compact Context & Token/USD Monitor Plugin for Google Antigravity 2.0</strong></p>
-  <p>
-    <a href="README.md">简体中文</a> ·
-    <a href="README_EN.md">English</a>
-  </p>
-  <p>
-    <img src="https://img.shields.io/badge/Antigravity-2.0%2B-6366f1?style=flat-square" alt="Antigravity 2.0+" />
-    <img src="https://img.shields.io/badge/Version-1.5.0-10b981?style=flat-square" alt="Version 1.5.0" />
-    <img src="https://img.shields.io/badge/Dependencies-Zero-38bdf8?style=flat-square" alt="Zero Dependencies" />
-    <img src="https://img.shields.io/badge/License-MIT-f59e0b?style=flat-square" alt="MIT License" />
-  </p>
-</div>
+<p align="center">
+  <img src="./assets/readme/hero.svg" width="100%" alt="AGY Beautify — Liquid Glass Theme, System Font & Weight Customization, 2,750+ Chinese Localization, and Token/USD Monitor for Google Antigravity 2.0" />
+</p>
+
+<p align="center">
+  <a href="README.md">简体中文</a> ·
+  <a href="README_EN.md">English</a> ·
+  <a href="#installation--setup">Installation</a> ·
+  <a href="#whats-new-in-this-edition-v160">What's New</a> ·
+  <a href="#credits--license">License</a>
+</p>
+
+**AGY Beautify (Enhanced Edition)** is a zero-dependency, non-invasive native plugin for **Google Antigravity 2.0**. It never modifies `app.asar` or your Antigravity installation — disable or remove the plugin folder anytime for a 100% clean revert.
+
+> Built upon [hongyanmo/agy-beautify](https://github.com/hongyanmo/agy-beautify) (MIT) with expanded zh-CN localization dictionaries adapted from [Silas-02/antigravity-desktop-cn](https://github.com/Silas-02/antigravity-desktop-cn) (MIT), plus native system font scanning and live UI/code font family & weight (`100–900`) customization. See [Credits & License](#credits--license) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ---
 
-**AGY Beautify** is a zero-dependency, non-invasive native plugin for **Google Antigravity 2.0**. It never modifies `app.asar` or your Antigravity installation — disable or remove the folder anytime for a 100% clean revert.
+## What's New in This Edition (v1.6.0)
 
-## Key Features
+- **System Font Scanner & Live Font Weight (`100–900`)**: Zero-dependency OS font enumeration (Windows GDI+ / macOS & Linux `fc-list`) with separate controls for UI font, code/terminal monospace font, and weight in both the Sidebar panel and Quick Studio popover — featuring live search, CJK/Mono filters, real-time typography preview, proportional bold scaling, and strict icon-font protection.
+- **2,750+ Entry & 180+ Pattern Chinese Localization**: Merges upstream Antigravity 2.0 UI translations covering settings, marketplace plugins, MCP servers, automations, quota refresh notices, Git actions, permission prompts, sidebar timestamps, and DOM menus — while fixing skipped `input`/`textarea` placeholders, raising the 90-char cutoff, adding `title` tooltip support, and traversing Shadow DOM menus.
+- **Self-Update Pointed to This Fork**: Built-in GitHub Release updater checks `auimus/agy-beautify` Releases and preserves all user settings, custom fonts, and wallpapers.
 
-- **Liquid Glass Engine & Native Titlebar Sync**: Instant `Auto / Light / Dark` switch with automatic Windows `titleBarOverlay` & opposite-tone wallpaper pairing, `Liquid Glass / Frosted / Solid` surface materials, curated light & dark wallpapers, custom image upload (picker, drag-drop, `Ctrl+V`, or local path), and a Reading Glass backdrop.
-- **Real-Time Quick Studio, Quota Reset Countdown & Auto-Compact (`/compact`)**: Bottom-bar `✦ xx% · ↻ XhXXm` pill shows live context usage and next quota reset countdown. Click to toggle themes, materials, presets, wallpapers in `<20ms`, inspect 5-hour & weekly quotas with exact reset times, trigger `/compact`, or drag the **auto-compact threshold bar (`40%–95%`, default `80%`)**.
-- **Gemini Starlight Model & Effort Slider**: Replaces the tall native dropdown with a sleek Liquid Glass stardust effort slider directly above the composer (`Shift+Click` opens the native menu anytime).
-- **Full-Pane Token & USD Monitor (`监控台`)**: Native sidebar entry opening a 3-tab analytics dashboard:
-  - **Overview**: 6 KPI cards (Tokens, USD + RMB, Cache Savings, Tool Calls, Active Time, Sessions), 14-day trend bar chart, SVG Token/Timing donut chart, 20-week interactive activity heatmap, per-model cost breakdown, and live **5h / Weekly Quota & Reset Time** cards.
-  - **Tools & Timings**: Side-by-side Token & Latency donuts, Top 10 Tool Calls (with duration), Top 10 Shell Commands, and Skills / Workspace breakdown.
-  - **All Sessions**: Live search, workspace filters, 4 sort modes, circular SVG context gauges, and click-to-jump navigation.
-- **Auto Chinese UI (`zh-CN`) & Right-Click Reveal File**: Cleanly localizes UI chrome while skipping responses/code blocks, and adds right-click `Open in Folder`, `Open`, `Copy Path`, and `Open in Terminal` on any file reference.
-- **Built-in One-Click GitHub Release Updater**: Automatically checks `hongyanmo/agy-beautify` Releases, verifies SHA-256, atomically swaps plugin files with rollback protection, and hot-reloads in place without touching user settings or custom wallpapers.
+---
 
-## Installation
+## Visual Preview
 
-### Option 1: Git Clone
+<table>
+  <tr>
+    <td width="50%">
+      <img src="docs/screenshots/01_dark_liquid_glass.png" alt="Deep Ocean Liquid Glass Dark Mode" />
+      <p align="center">Deep Ocean Liquid Glass · Dark</p>
+    </td>
+    <td width="50%">
+      <img src="docs/screenshots/04_light_liquid_glass.png" alt="Liquid Prism Light Mode" />
+      <p align="center">Liquid Prism · Light</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="docs/screenshots/03_quick_studio_compact.png" alt="Quick Studio & Auto-Compact" />
+      <p align="center">Quick Studio &amp; Auto-Compact Bar</p>
+    </td>
+    <td width="50%">
+      <img src="docs/screenshots/05_monitor_overview.png" alt="Full-Pane Token & USD Monitor" />
+      <p align="center">Full-Pane Token &amp; USD Monitor</p>
+    </td>
+  </tr>
+</table>
 
-**Windows (PowerShell):**
+---
+
+## Architecture
+
+<p align="center">
+  <img src="./assets/readme/architecture.svg" width="100%" alt="AGY Beautify Zero-Invasive Sidecar and CDP Architecture" />
+</p>
+
+---
+
+## Installation & Setup
+
+### 1. Install into the Antigravity Plugins Directory
+
+**Option A: Git Clone (Recommended)**
+
+Windows (PowerShell):
 ```powershell
-git clone https://github.com/hongyanmo/agy-beautify.git "$env:USERPROFILE\.gemini\config\plugins\agy-beautify"
+git clone https://github.com/auimus/agy-beautify.git "$env:USERPROFILE\.gemini\config\plugins\agy-beautify"
 ```
 
-**macOS / Linux:**
+macOS / Linux:
 ```bash
-git clone https://github.com/hongyanmo/agy-beautify.git ~/.gemini/config/plugins/agy-beautify
+git clone https://github.com/auimus/agy-beautify.git ~/.gemini/config/plugins/agy-beautify
 ```
 
-### Option 2: Release ZIP
+**Option B: Release ZIP**
 
-1. Download the latest `agy-beautify-v1.5.0.zip` from **Releases**.
-2. Extract it into `~/.gemini/config/plugins/` so `plugin.json` lives at `~/.gemini/config/plugins/agy-beautify/plugin.json`.
-3. Enable **AGY Beautify** in Antigravity's **Customizations / Plugins** panel.
-4. From `v1.5.0` onward, click **Check Updates / One-Click Update** in Quick Studio, Monitor, or the Sidecar panel whenever a new GitHub Release is published.
+Download the latest `agy-beautify-v*.zip` from [GitHub Releases](https://github.com/auimus/agy-beautify/releases) and extract it so `plugin.json` is located at:
+- Windows: `%USERPROFILE%\.gemini\config\plugins\agy-beautify\plugin.json`
+- macOS / Linux: `~/.gemini/config/plugins/agy-beautify/plugin.json`
+
+### 2. Launch Antigravity with `--remote-debugging-port=0` (Required)
+
+Because this plugin injects purely via CDP without patching `app.asar`, Antigravity must be launched with `--remote-debugging-port=0` so Electron writes `DevToolsActivePort`:
+
+- **Windows**: Add `--remote-debugging-port=0` to your Antigravity Desktop / Start Menu shortcut **Target** field, then fully quit and relaunch Antigravity.
+- **macOS**: `open -a Antigravity --args --remote-debugging-port=0`
+- **Linux**: `antigravity --remote-debugging-port=0`
+
+Enable **AGY Beautify** under **Customizations / Plugins** and open the sidebar panel to confirm the status badge shows **Active (`已生效`)**.
+
+---
+
+## Known Boundaries & Privacy
+
+- **Native OS Context Menus**: Native Electron `Menu.popup()` right-click menus and OS menu bars are controlled by the Electron main process and cannot be intercepted without modifying `app.asar`. All in-page HTML DOM menus, dialogs, and panels are localized.
+- **100% Local & Offline**: Token, USD, timing, and font scans run locally on your machine. No conversation content is sent externally (only GitHub Releases is queried when checking for updates).
 
 ## Tests
 
@@ -57,10 +104,12 @@ git clone https://github.com/hongyanmo/agy-beautify.git ~/.gemini/config/plugins
 node --test sidecars/beautify_hub/beautify.test.mjs
 ```
 
-## Privacy
+---
 
-100% local and offline. All token, USD, tool, and session analytics are read strictly in read-only mode from your local Antigravity SQLite files — nothing is ever sent to any external server.
+## Credits & License
 
-## License
+Licensed under the [MIT License](LICENSE). All upstream copyright notices are preserved in [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md):
 
-[MIT License](LICENSE)
+- **[hongyanmo/agy-beautify](https://github.com/hongyanmo/agy-beautify)** — MIT License (`Copyright (c) 2026 Kaora (hongyanmo)`): Upstream plugin foundation (Liquid Glass engine, wallpaper studio, Gemini Starlight picker, Token & USD monitor, auto-compact, file reveal, and updater).
+- **[Silas-02/antigravity-desktop-cn](https://github.com/Silas-02/antigravity-desktop-cn)** — MIT License (`Copyright (c) 2026 Silas-02`, `qqxpee`, `Antigravity Chinese Localization Contributors`): Source of the expanded zh-CN UI dictionary (`i18n_upstream.json`) and adapted dynamic localization patterns.
+- **Fonts & Trademarks**: No third-party or commercial font binaries are bundled in this repository; fonts are enumerated directly from the user's local OS. "Google", "Antigravity", and "Gemini" are trademarks of Google LLC.

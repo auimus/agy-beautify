@@ -22,6 +22,8 @@ const fmtTok = n => {
 };
 
 let wpFilter = 'all';
+let fontFilter = 'all';
+let fontSearch = '';
 let latestData = null;
 
 function detectHostIsDark() {
@@ -67,6 +69,136 @@ for (const pill of document.querySelectorAll('#wpFilters .f-pill')) {
     for (const p of document.querySelectorAll('#wpFilters .f-pill')) p.classList.toggle('active', p === pill);
     if (latestData) renderWallpapers(latestData);
   };
+}
+
+// Font filter pills & search
+for (const pill of document.querySelectorAll('#fontFilters .f-pill')) {
+  pill.onclick = () => {
+    fontFilter = pill.dataset.ffilter;
+    for (const p of document.querySelectorAll('#fontFilters .f-pill')) p.classList.toggle('active', p === pill);
+    if (latestData) renderFontControls(latestData);
+  };
+}
+document.getElementById('fontSearchInput')?.addEventListener('input', ev => {
+  fontSearch = String(ev.target.value || '').trim().toLowerCase();
+  if (latestData) renderFontControls(latestData);
+});
+
+const weightLabel = w => {
+  const n = Number(w) || 400;
+  if (n <= 200) return n + ' (极细)';
+  if (n <= 300) return n + ' (细体)';
+  if (n <= 400) return n + ' (常规)';
+  if (n <= 500) return n + ' (中等)';
+  if (n <= 600) return n + ' (半粗)';
+  if (n <= 700) return n + ' (粗体)';
+  return n + ' (特粗)';
+};
+
+function quoteFontStack(raw, fallback) {
+  const cleaned = String(raw || '').trim();
+  if (!cleaned) return fallback;
+  const parts = cleaned.split(',').map(s => s.trim().replace(/^["']+|["']+$/g, '')).filter(Boolean).map(n => '"' + n.replace(/"/g, '') + '"');
+  return parts.length ? parts.join(', ') + ', ' + fallback : fallback;
+}
+
+function updateFontPreview(uiFamily, uiWeight, codeFamily, codeWeight) {
+  const uiEl = document.getElementById('fontPreviewUi');
+  const codeEl = document.getElementById('fontPreviewCode');
+  if (uiEl) {
+    uiEl.style.fontFamily = quoteFontStack(uiFamily, 'system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif');
+    uiEl.style.fontWeight = String(uiWeight || 400);
+  }
+  if (codeEl) {
+    codeEl.style.fontFamily = quoteFontStack(codeFamily, 'ui-monospace, "Cascadia Code", Consolas, monospace');
+    codeEl.style.fontWeight = String(codeWeight || 400);
+  }
+}
+
+function renderFontControls(data) {
+  const s = data.settings || {};
+  const allFonts = Array.isArray(data.systemFonts) ? data.systemFonts : [];
+  const badge = document.getElementById('fontCountBadge');
+  if (badge) badge.textContent = allFonts.length ? '(' + allFonts.length + ' 款本机字体)' : '';
+
+  const filtered = allFonts.filter(f => {
+    if (!f?.name) return false;
+    if (fontFilter === 'cjk' && !f.isCjk) return false;
+    if (fontFilter === 'mono' && !f.isMono) return false;
+    if (fontSearch && !f.name.toLowerCase().includes(fontSearch)) return false;
+    return true;
+  });
+
+  const uiSel = document.getElementById('selUiFont');
+  const uiCur = String(s.uiFontFamily || '');
+  if (uiSel) {
+    uiSel.innerHTML = '';
+    const defOpt = document.createElement('option');
+    defOpt.value = '';
+    defOpt.textContent = '跟随系统默认';
+    uiSel.appendChild(defOpt);
+    let hasCur = !uiCur;
+    for (const f of filtered) {
+      const o = document.createElement('option');
+      o.value = f.name;
+      o.textContent = f.name + (f.isMono ? ' [等宽]' : f.isCjk ? ' [中文]' : '');
+      if (f.name === uiCur) hasCur = true;
+      uiSel.appendChild(o);
+    }
+    if (!hasCur && uiCur) {
+      const o = document.createElement('option');
+      o.value = uiCur;
+      o.textContent = uiCur + ' (当前已选)';
+      uiSel.insertBefore(o, uiSel.children[1] || null);
+    }
+    uiSel.value = uiCur;
+  }
+
+  const uiInp = document.getElementById('inpUiFont');
+  if (uiInp && document.activeElement !== uiInp) uiInp.value = uiCur;
+
+  const codeSel = document.getElementById('selCodeFont');
+  const codeCur = String(s.codeFontFamily || '');
+  if (codeSel) {
+    codeSel.innerHTML = '';
+    const defOpt = document.createElement('option');
+    defOpt.value = '';
+    defOpt.textContent = '跟随系统默认';
+    codeSel.appendChild(defOpt);
+    const codeOrdered = [...allFonts].sort((a, b) => Number(Boolean(b.isMono)) - Number(Boolean(a.isMono)) || a.name.localeCompare(b.name, 'zh-CN'));
+    let hasCode = !codeCur;
+    for (const f of codeOrdered) {
+      if (fontSearch && !f.name.toLowerCase().includes(fontSearch)) continue;
+      const o = document.createElement('option');
+      o.value = f.name;
+      o.textContent = (f.isMono ? '[等宽] ' : '') + f.name;
+      if (f.name === codeCur) hasCode = true;
+      codeSel.appendChild(o);
+    }
+    if (!hasCode && codeCur) {
+      const o = document.createElement('option');
+      o.value = codeCur;
+      o.textContent = codeCur + ' (当前已选)';
+      codeSel.insertBefore(o, codeSel.children[1] || null);
+    }
+    codeSel.value = codeCur;
+  }
+
+  const uiW = Math.round(Number(s.uiFontWeight ?? 400));
+  const codeW = Math.round(Number(s.codeFontWeight ?? 400));
+  const rngUiW = document.getElementById('rngUiWeight');
+  const valUiW = document.getElementById('valUiWeight');
+  if (rngUiW) rngUiW.value = String(uiW);
+  if (valUiW) valUiW.textContent = weightLabel(uiW);
+  for (const b of document.querySelectorAll('#uiWeightPills .w-pill')) {
+    b.classList.toggle('active', Number(b.dataset.w) === uiW);
+  }
+  const rngCodeW = document.getElementById('rngCodeWeight');
+  const valCodeW = document.getElementById('valCodeWeight');
+  if (rngCodeW) rngCodeW.value = String(codeW);
+  if (valCodeW) valCodeW.textContent = weightLabel(codeW);
+
+  updateFontPreview(uiCur, uiW, codeCur, codeW);
 }
 
 function renderUpdateStatus(upd) {
@@ -369,6 +501,7 @@ function renderSettingsAndWallpapers(data) {
   setRng('rngSat', 'valSat', Math.round((s.wallpaperSaturation ?? 1.08) * 100), '%');
   setRng('rngAutoCompact', 'valAutoCompact', Math.round(s.autoCompactThreshold ?? 80), '%');
 
+  renderFontControls(data);
   renderWallpapers(data);
 
   // Reveal history
@@ -411,7 +544,7 @@ async function refresh(includeUsage = false) {
     const convId = window.sidecar?.conversationId || new URLSearchParams(location.search).get('conversationId') || '';
     const data = await post('/api/state', { conversationId: convId, includeUsage });
     renderDashboard(data);
-    const sig = JSON.stringify([data.settings, (data.wallpapers || []).map(w => w.id)]);
+    const sig = JSON.stringify([data.settings, (data.wallpapers || []).map(w => w.id), (data.systemFonts || []).length]);
     if (sig !== lastWallpaperSig) {
       lastWallpaperSig = sig;
       renderSettingsAndWallpapers(data);
@@ -473,6 +606,83 @@ bindRange('rngBlur', 'wallpaperBlur', 1, 'valBlur', ' px');
 bindRange('rngBright', 'wallpaperBrightness', 100, 'valBright', '%');
 bindRange('rngSat', 'wallpaperSaturation', 100, 'valSat', '%');
 bindRange('rngAutoCompact', 'autoCompactThreshold', 1, 'valAutoCompact', '%');
+
+// System Font & Font Weight bindings
+document.getElementById('selUiFont')?.addEventListener('change', async ev => {
+  const val = String(ev.target.value || '');
+  await post('/api/settings', { uiFontFamily: val, customFontEnabled: true });
+  lastWallpaperSig = '';
+  await refresh(false);
+});
+document.getElementById('btnApplyUiFont')?.addEventListener('click', async () => {
+  const val = String(document.getElementById('inpUiFont')?.value || '').trim();
+  await post('/api/settings', { uiFontFamily: val, customFontEnabled: true });
+  const msg = document.getElementById('fontStatusMsg');
+  if (msg) msg.textContent = val ? '已应用字体：' + val : '已恢复系统默认界面字体';
+  lastWallpaperSig = '';
+  await refresh(false);
+});
+document.getElementById('selCodeFont')?.addEventListener('change', async ev => {
+  const val = String(ev.target.value || '');
+  await post('/api/settings', { codeFontFamily: val, customFontEnabled: true });
+  lastWallpaperSig = '';
+  await refresh(false);
+});
+document.getElementById('rngUiWeight')?.addEventListener('input', ev => {
+  const w = Number(ev.target.value);
+  const lb = document.getElementById('valUiWeight');
+  if (lb) lb.textContent = weightLabel(w);
+  for (const b of document.querySelectorAll('#uiWeightPills .w-pill')) {
+    b.classList.toggle('active', Number(b.dataset.w) === w);
+  }
+  const s = latestData?.settings || {};
+  updateFontPreview(s.uiFontFamily, w, s.codeFontFamily, s.codeFontWeight);
+});
+document.getElementById('rngUiWeight')?.addEventListener('change', async ev => {
+  await post('/api/settings', { uiFontWeight: Number(ev.target.value), customFontEnabled: true });
+  lastWallpaperSig = '';
+  await refresh(false);
+});
+for (const b of document.querySelectorAll('#uiWeightPills .w-pill')) {
+  b.onclick = async () => {
+    await post('/api/settings', { uiFontWeight: Number(b.dataset.w), customFontEnabled: true });
+    lastWallpaperSig = '';
+    await refresh(false);
+  };
+}
+document.getElementById('rngCodeWeight')?.addEventListener('input', ev => {
+  const w = Number(ev.target.value);
+  const lb = document.getElementById('valCodeWeight');
+  if (lb) lb.textContent = weightLabel(w);
+  const s = latestData?.settings || {};
+  updateFontPreview(s.uiFontFamily, s.uiFontWeight, s.codeFontFamily, w);
+});
+document.getElementById('rngCodeWeight')?.addEventListener('change', async ev => {
+  await post('/api/settings', { codeFontWeight: Number(ev.target.value), customFontEnabled: true });
+  lastWallpaperSig = '';
+  await refresh(false);
+});
+document.getElementById('btnRefreshFonts')?.addEventListener('click', async () => {
+  const msg = document.getElementById('fontStatusMsg');
+  if (msg) msg.textContent = '正在扫描系统字体...';
+  const res = await post('/api/fonts', { refresh: true });
+  if (msg) msg.textContent = '已刷新系统字体（共 ' + (res?.count || 0) + ' 款）';
+  lastWallpaperSig = '';
+  await refresh(false);
+});
+document.getElementById('btnResetFonts')?.addEventListener('click', async () => {
+  await post('/api/settings', {
+    customFontEnabled: false,
+    uiFontFamily: '',
+    uiFontWeight: 400,
+    codeFontFamily: '',
+    codeFontWeight: 400,
+  });
+  const msg = document.getElementById('fontStatusMsg');
+  if (msg) msg.textContent = '已恢复原生字体与字重';
+  lastWallpaperSig = '';
+  await refresh(false);
+});
 
 // File upload, drag-drop, Ctrl+V paste, and local path import
 async function uploadFileObj(file) {

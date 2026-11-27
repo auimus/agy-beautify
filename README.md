@@ -1,34 +1,26 @@
-<div align="center">
-  <img src="assets/logo.svg" width="76" height="76" alt="AGY Beautify Logo" />
-  <h1>AGY Beautify</h1>
-  <p><strong>Google Antigravity 2.0 全能美化、液态玻璃、自动压缩上下文与 Token/美元监控插件</strong></p>
-  <p>
-    <a href="README.md">简体中文</a> ·
-    <a href="README_EN.md">English</a>
-  </p>
-  <p>
-    <img src="https://img.shields.io/badge/Antigravity-2.0%2B-6366f1?style=flat-square" alt="Antigravity 2.0+" />
-    <img src="https://img.shields.io/badge/Version-1.5.0-10b981?style=flat-square" alt="Version 1.5.0" />
-    <img src="https://img.shields.io/badge/Dependencies-Zero-38bdf8?style=flat-square" alt="Zero Dependencies" />
-    <img src="https://img.shields.io/badge/License-MIT-f59e0b?style=flat-square" alt="MIT License" />
-  </p>
-</div>
+<p align="center">
+  <img src="./assets/readme/hero.svg" width="100%" alt="AGY Beautify — Google Antigravity 2.0 液态玻璃主题、系统字体与字重自定义、2,750+ 深度汉化与 Token/美元监控台原生插件" />
+</p>
+
+<p align="center">
+  <a href="README.md">简体中文</a> ·
+  <a href="README_EN.md">English</a> ·
+  <a href="#快速安装与启用">快速安装</a> ·
+  <a href="#本版新增增强特性">新增特性</a> ·
+  <a href="#致谢与版权声明">版权声明</a>
+</p>
+
+**AGY Beautify（增强版）** 是一款专为 **Google Antigravity 2.0** 打造的零依赖原生美化与效率插件：不修改客户端 `app.asar` 与任何安装文件，停用或删除目录即可 100% 无损还原。
+
+> 本仓库基于 [hongyanmo/agy-beautify](https://github.com/hongyanmo/agy-beautify)（MIT）二次开发，整合了 [Silas-02/antigravity-desktop-cn](https://github.com/Silas-02/antigravity-desktop-cn)（MIT）的中文汉化词典与动态规则，并新增**本机系统字体扫描、界面/代码字体与字重（100–900）实时自定义**能力。详见 [致谢与版权声明](#致谢与版权声明)。
 
 ---
 
-**AGY Beautify** 是一款专为 **Google Antigravity 2.0** 打造的纯原生一站式美化与效率插件：不修改客户端 `app.asar` 与任何安装文件，零第三方依赖，打包不到 100 KB，卸载或关闭开关即可 100% 无损还原。
+## 本版新增增强特性（v1.6.0）
 
-## 核心功能一览
-
-| 模块 | 功能亮点 |
-| --- | --- |
-| **液态玻璃 & 深浅色主题** | `跟随系统 / 浅色 / 深色` 一键切换，自动同步 Windows 原生标题栏窗口控件与深浅色壁纸配对；支持 `液态玻璃 / 轻柔磨砂 / 纯净实体` 三种表面材质与阅读护眼玻璃底板 |
-| **壁纸工作室** | 内置 5 套浅/深双风格壁纸，支持本地选图、拖拽导入、`Ctrl+V` 粘贴截图、本地路径导入与遮罩微调 |
-| **快捷浮窗、重置倒计时 & 自动压缩** | 底栏 `✦ xx% · ↻ XhXXm` 胶囊实时显示上下文占比与配额重置倒计时；点开即可实时切换样式、查看 5 小时/周额度与重置时间，并内置手动 `/compact` 与 **可拖拽阈值进度条（40%–95%）** |
-| **Gemini 星尘模型滑条** | 自动屏蔽原生冗长下拉菜单，在输入框上方悬浮流动星尘滑条切思考强度，支持一键切模型家族与 `⚡` 加速（`Shift+点击` 开原生菜单） |
-| **左侧全屏「Token 与美元监控台」** | 分「总览 / 工具与耗时 / 全部会话」三视图，展示总 Token、美元、缓存节省、14 天趋势、Token/耗时环形图、20 周热力图、实时配额与重置时间、工具/命令/技能排行与可搜索会话卡片 |
-| **自动中文汉化 & 右键文件定位** | 开箱即用简体中文界面（跳过对话正文与代码块）；对话内任意文件右键支持打开所在文件夹、默认程序打开、复制路径与在终端打开目录 |
-| **一键在线检测与热更新** | 自动检测 GitHub 最新 Release；发现新版本后在浮窗、监控台与侧边栏轻提示，支持 SHA-256 校验、一键原子覆盖与免重启热重载（完整保留个人设置与自定义壁纸） |
+- **本机系统字体读取 & 字重实时自定义**：零依赖自动扫描本机已安装字体（Windows GDI+ / macOS & Linux `fc-list`），支持在侧边栏控制台与底栏 `✦` 快捷浮窗分别定制**界面字体、代码/终端等宽字体与 `100–900` 字重**，内置中文/等宽筛选、实时搜索与排版预览，标题粗体按比例联动，严格保护图标字体。
+- **2,750+ 词条 & 180+ 动态规则深度汉化**：在原版 118 条词典基础上融合全量 Antigravity 2.0 中文词库，覆盖设置页、插件市场、MCP 服务、定时任务、配额刷新提示、Git 状态、权限审批、侧边栏相对时间与 DOM 下拉菜单；同时修复了原版输入框 `placeholder` 被跳过、90 字符硬截断、未翻译 `title` 提示及 Shadow DOM 菜单漏翻问题。
+- **一键更新已指向本仓库**：内置 GitHub Release 更新器默认对接 `auimus/agy-beautify`，升级时完整保留你的壁纸、字体与个人设置。
 
 ---
 
@@ -49,112 +41,162 @@
   </tr>
 </table>
 
-### 2. 底栏快捷美化浮窗、配额重置倒计时 & 上下文自动压缩
-
-所有外观开关、材质切换、预设与壁纸均实时生效；下方内置 **上下文压缩卡片**，支持手动 `⚡ 立即压缩` 以及左右拖动圆点设定触发阈值（例如拖到 `70%`，上下文超过 `70%` 且本轮对话结束后自动执行 `/compact`）。切到 **「用量速览」** 标签可实时查看 5 小时/周模型配额、精确重置倒计时，并在底部一键检测 GitHub 新版本。
+### 2. 底栏快捷浮窗（壁纸 / 字体字重 / 自动压缩 / 配额倒计时）
 
 <table>
   <tr>
     <td width="54%">
       <img src="docs/screenshots/03_quick_studio_compact.png" alt="快捷美化浮窗与上下文自动压缩进度条" />
-      <p align="center">快捷美化 & 自动压缩进度条</p>
+      <p align="center">快捷美化 &amp; 自动压缩进度条</p>
     </td>
     <td width="46%">
       <img src="docs/screenshots/08_quick_usage_updater.png" alt="用量速览、实时配额重置倒计时与一键更新" />
-      <p align="center">用量速览、配额重置倒计时 & 检查更新</p>
+      <p align="center">用量速览、配额重置倒计时 &amp; 检查更新</p>
     </td>
   </tr>
 </table>
 
-### 3. Gemini 星尘模型与思考强度滑条
+### 3. Gemini 星尘模型滑条 & 左侧全屏 Token / 美元监控台
 
 <p align="center">
   <img src="docs/screenshots/02_gemini_starlight_picker.png" width="560" alt="Gemini 星尘模型滑条" />
 </p>
 
-### 4. 左侧全屏「Token 与美元监控台」（三视图）
+<details>
+<summary>展开查看全屏「Token 与美元监控台」三视图截图（总览 / 工具与耗时 / 全部会话）</summary>
 
 #### 总览（6 指标卡 + 14 天趋势 + 环形图 + 20 周热力图 + 模型费用排行）
 <img src="docs/screenshots/05_monitor_overview.png" alt="监控台总览视图" />
 
-#### 工具与耗时（Token/耗时双环形图 + 工具调用 / 命令执行 / 技能调用排行）
+#### 工具与耗时（Token / 耗时双环形图 + 工具 / 命令 / 技能排行）
 <img src="docs/screenshots/06_monitor_insights.png" alt="监控台工具与耗时视图" />
 
-#### 全部会话（实时搜索 + 工作区筛选 + 排序 + 上下文环形图 + 点击直达会话）
+#### 全部会话（实时搜索 + 工作区筛选 + 排序 + 点击直达会话）
 <img src="docs/screenshots/07_monitor_sessions.png" alt="监控台全部会话视图" />
 
+</details>
+
 ---
 
-## 快速安装
+## 核心功能总览
 
-### 方式一：Git Clone 直接安装（推荐）
+| 模块 | 功能亮点 |
+| --- | --- |
+| **系统字体与字重** | 零依赖扫描本机字体，分别定制界面字体、代码/终端等宽字体与 `100–900` 字重；支持搜索、中文/等宽筛选、实时预览与一键还原 |
+| **深度中文汉化（zh-CN）** | 2,750+ 精确词条 + 180+ 动态模板，跳过对话正文、代码块、Monaco 编辑器、终端与图标字体；关闭开关即时还原英文 |
+| **液态玻璃 & 壁纸工作室** | `跟随系统 / 浅色 / 深色` 一键切换并同步标题栏；支持 `液态玻璃 / 轻柔磨砂 / 纯净实体`、内置 5 套壁纸及拖拽 / `Ctrl+V` / 本地路径导入 |
+| **快捷浮窗 & 自动压缩** | 底栏 `✦ xx% · ↻ XhXXm` 实时显示上下文占比与配额重置倒计时；支持手动 `/compact` 与可拖拽阈值（`40%–95%`）对话结束后自动压缩 |
+| **Gemini 星尘模型滑条** | 输入框上方悬浮流动星尘滑条切思考强度，支持一键切模型家族与 `⚡` 加速（`Shift+点击` 打开原生菜单） |
+| **左侧全屏监控台** | 三视图展示总 Token、美元、缓存节省、14 天趋势、20 周热力图、实时配额与工具/命令/技能耗时排行 |
+| **文件右键定位** | 对话内任意文件路径右键一键打开所在文件夹、默认程序打开、复制路径或在终端打开目录 |
 
-**Windows (PowerShell)：**
+---
+
+## 零侵入工作原理
+
+<p align="center">
+  <img src="./assets/readme/architecture.svg" width="100%" alt="AGY Beautify 零侵入架构：本地数据源、原生 Sidecar 与 CDP 实时注入流程" />
+</p>
+
+---
+
+## 快速安装与启用
+
+### 第 1 步：安装插件到 Antigravity 插件目录
+
+**方式一：Git Clone（推荐）**
+
+Windows (PowerShell)：
 ```powershell
-git clone https://github.com/hongyanmo/agy-beautify.git "$env:USERPROFILE\.gemini\config\plugins\agy-beautify"
+git clone https://github.com/auimus/agy-beautify.git "$env:USERPROFILE\.gemini\config\plugins\agy-beautify"
 ```
 
-**macOS / Linux：**
+macOS / Linux：
 ```bash
-git clone https://github.com/hongyanmo/agy-beautify.git ~/.gemini/config/plugins/agy-beautify
+git clone https://github.com/auimus/agy-beautify.git ~/.gemini/config/plugins/agy-beautify
 ```
 
-### 方式二：下载 Release 压缩包手动安装
+**方式二：下载 Release 压缩包**
 
-1. 前往本仓库的 **Releases** 页面下载最新压缩包（如 `agy-beautify-v1.5.0.zip`）。
-2. 解压到 Antigravity 插件目录，确保目录结构如下：
-   - Windows: `%USERPROFILE%\.gemini\config\plugins\agy-beautify\plugin.json`
-   - macOS / Linux: `~/.gemini/config/plugins/agy-beautify/plugin.json`
-3. 重启或打开 Antigravity，在左侧 **「自定义 / 插件」** 中启用 **AGY Beautify** 即可生效。
+前往 [GitHub Releases](https://github.com/auimus/agy-beautify/releases) 下载最新 `agy-beautify-v*.zip`，解压至插件目录，确保存在 `plugin.json`：
+- Windows：`%USERPROFILE%\.gemini\config\plugins\agy-beautify\plugin.json`
+- macOS / Linux：`~/.gemini/config/plugins/agy-beautify/plugin.json`
 
-### 后续如何更新（v1.5.0+）
+### 第 2 步：开启远程调试端口（关键，未开启时界面不生效）
 
-- **自动一键更新（推荐）**：从 `v1.5.0` 起内置 GitHub Release 更新器。有新版本发布时，底栏快捷浮窗、监控台顶栏与侧边栏 **「功能更新」** 面板都会出现更新提示，点击 **「一键更新」** 即可自动下载、SHA-256 校验、覆盖并热重载生效，**你的个人配置与自定义壁纸完全保留**。
-- **手动检查更新**：点开底栏 `✦` 浮窗 →「用量速览」底部的 **「检查更新」**，或在侧边栏控制台中点击 **「检查更新」**。
+由于本插件采用**零侵入 CDP 注入**（不修改 `app.asar`），Antigravity 客户端需带上 `--remote-debugging-port=0` 参数启动，Electron 才会生成本地 `DevToolsActivePort`：
+
+- **Windows**：右键 Antigravity 桌面/开始菜单快捷方式 → **属性** → 在「目标」末尾追加一个空格和 `--remote-debugging-port=0`，保存后**完全退出并重新打开 Antigravity**；或直接在 PowerShell 运行一键配置：
+  ```powershell
+  $ws = New-Object -ComObject WScript.Shell
+  @("$env:USERPROFILE\Desktop\Antigravity.lnk", "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Antigravity.lnk") | ForEach-Object {
+    if (Test-Path $_) {
+      $sc = $ws.CreateShortcut($_)
+      if ($sc.Arguments -notmatch '--remote-debugging-port') {
+        $sc.Arguments = ($sc.Arguments + ' --remote-debugging-port=0').Trim()
+        $sc.Save()
+      }
+    }
+  }
+  ```
+- **macOS**：
+  ```bash
+  open -a Antigravity --args --remote-debugging-port=0
+  ```
+- **Linux**：
+  ```bash
+  antigravity --remote-debugging-port=0
+  ```
+
+重启后打开左侧 **「自定义 / 插件」** 确认启用 **AGY Beautify**，几秒内即可看到界面自动生效，侧边栏控制台右上角将显示 **「已生效」**。
 
 ---
 
-## 目录结构
+## 已知边界与隐私说明
+
+- **关于系统原生右键菜单与顶部系统菜单栏**：由于不修改客户端 `app.asar`，Electron 主进程弹出的 OS 原生菜单（`Menu.popup()`）无法被纯页面侧插件拦截；页面内所有 HTML DOM 菜单、弹窗、设置页与工具栏均可正常汉化。
+- **关于字重显示**：`100–900` 滑块对可变字体或多字重字体族（如 `Noto Sans SC`、`Maple Mono`、`Cascadia Code`、`HarmonyOS Sans SC` 等）表现最细腻；单字重字体会由系统自动映射到最近可用字重。
+- **100% 本地离线**：所有 Token、美元、耗时与系统字体扫描均在本地完成，不向第三方上传对话或隐私数据（仅检查更新时请求 GitHub Releases）。
+
+---
+
+## 目录结构与测试
 
 ```text
 agy-beautify/
 ├── plugin.json                      # Antigravity 插件清单
-├── assets/logo.svg                  # 插件图标
+├── LICENSE                          # MIT 开源许可（保留原版权声明）
+├── THIRD_PARTY_NOTICES.md           # 第三方开源许可与版权归属声明
+├── assets/
+│   ├── logo.svg                     # 插件图标
+│   └── readme/                      # README 原生纯 SVG 视觉资产
 ├── skills/agy-beautify/SKILL.md     # Agent 技能描述
-├── sidecars/beautify_hub/
-│   ├── sidecar.json                 # Sidecar 注册配置
-│   ├── server.mjs                   # 侧边栏控制台服务与 CDP 桥接
-│   ├── injector.mjs                 # 页面实时注入引擎（液态玻璃/星尘滑条/浮窗/监控台/自动压缩/汉化/右键）
-│   ├── telemetry.mjs                # 本地 SQLite 会话解析（Token/美元/耗时/工具/命令/技能/热力图）
-│   ├── settings.mjs                 # 设置持久化、预设方案与壁纸管理
-│   ├── i18n_dict.mjs                # 简体中文界面词典
-│   ├── path_utils.mjs               # 跨平台本地路径解析与文件管理器定位
-│   ├── updater.mjs                  # GitHub Release 检测、SHA-256 校验与原子热更新引擎
-│   ├── ui_html.mjs & ui_script.mjs  # 侧边栏美化控制台界面
-│   └── beautify.test.mjs            # Node 原生单元测试
-└── docs/screenshots/                # README 预览截图
+└── sidecars/beautify_hub/
+    ├── sidecar.json                 # Sidecar 注册配置
+    ├── server.mjs                   # 侧边栏服务、字体/设置 API 与热重载
+    ├── injector.mjs                 # CDP 实时注入引擎（玻璃/字体字重/汉化/滑条/监控台/压缩）
+    ├── fonts.mjs                    # 跨平台零依赖本机系统字体扫描与 CSS 栈构建
+    ├── i18n_dict.mjs                # 汉化词典融合与 180+ 动态匹配规则
+    ├── i18n_upstream.json           # 整合自 antigravity-desktop-cn 的 2,722 条词库
+    ├── telemetry.mjs                # 本地 SQLite 会话解析
+    ├── settings.mjs                 # 设置持久化、预设与壁纸管理
+    ├── path_utils.mjs               # 跨平台本地路径解析与文件管理器定位
+    ├── updater.mjs                  # GitHub Release 检测、SHA-256 校验与原子热更新
+    ├── ui_html.mjs & ui_script.mjs  # 侧边栏美化与字体控制台界面
+    └── beautify.test.mjs            # Node 原生单元测试
 ```
 
----
-
-## 运行单元测试
-
-本插件使用 Node.js 内置测试模块，无需安装任何依赖：
-
+运行内置单元测试（无需安装任何依赖）：
 ```bash
 node --test sidecars/beautify_hub/beautify.test.mjs
 ```
 
 ---
 
-## 隐私与安全说明
+## 致谢与版权声明
 
-- **100% 本地离线**：监控台展示的所有 Token、美元费用、工具调用、命令统计与会话记录，均直接只读解析自你本机的 Antigravity SQLite 文件，**不会向任何第三方服务器发送数据**。
-- **零侵入可逆**：不修改 Antigravity 客户端安装目录或 `app.asar`；关闭插件开关或删除插件文件夹即可完全恢复原生界面。
-- **费用说明**：监控台中的美元费用基于主流模型公开 API 单价结合本机真实 Token 消耗记录计算，便于直观感知用量与缓存节省。
+本项目遵循 **MIT License** 开源，完整保留所有上游项目的版权声明与许可条款（详见 [LICENSE](LICENSE) 与 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)）：
 
----
-
-## License
-
-[MIT License](LICENSE)
+- **[hongyanmo/agy-beautify](https://github.com/hongyanmo/agy-beautify)**（MIT License，`Copyright (c) 2026 Kaora (hongyanmo)`）：本项目的上游基础仓库，提供了原生 Sidecar 架构、液态玻璃主题、壁纸工作室、Gemini 星尘滑条、自动压缩、Token 监控台与右键文件定位等核心能力。
+- **[Silas-02/antigravity-desktop-cn](https://github.com/Silas-02/antigravity-desktop-cn)**（MIT License，`Copyright (c) 2026 Silas-02`、`qqxpee`、`Antigravity Chinese Localization Contributors`）：本版深度中文词典（`i18n_upstream.json`）及部分动态文案匹配规则基于该项目的开源汉化词库整合与适配。
+- **字体与商标声明**：本仓库不包含或二次分发任何商业/第三方字体文件，所有系统字体均由插件在用户本机实时读取；`Google`、`Antigravity`、`Gemini` 均为 Google LLC 的注册商标，本项目为独立社区插件。

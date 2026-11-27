@@ -1,8 +1,8 @@
 {
   "name": "agy-beautify",
   "displayName": "AGY Beautify",
-  "version": "1.5.0",
-  "description": "All-in-one Antigravity beautification & productivity suite: real-time Liquid Glass/Frosted/Solid & Light/Dark Quick Studio with native titlebar overlay sync, live quota & reset time countdown, draggable auto-compact context threshold (/compact), full-pane Token & USD Monitor in the left sidebar, curated & custom wallpapers, Gemini Starlight effort slider, auto Chinese localization, right-click reveal file, and one-click GitHub Release self-update.",
+  "version": "1.6.0",
+  "description": "All-in-one Antigravity 2.0 beautification & productivity suite: Liquid Glass/Frosted/Solid themes, system font scanner with custom UI/code font family & weight (100–900), enhanced 2,750+ rule Chinese localization, Gemini Starlight effort slider, live quota & auto-compact (/compact), full-pane Token & USD Monitor, right-click reveal file, and one-click GitHub Release updater.",
   "logo": "assets/logo.svg",
   "suggestedPrompts": [
     "/agy-beautify 打开 AGY Beautify 液态玻璃与美化控制台",

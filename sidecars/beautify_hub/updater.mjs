@@ -18,10 +18,10 @@ import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
 
-export const DEFAULT_REPO_OWNER = 'hongyanmo';
+export const DEFAULT_REPO_OWNER = 'auimus';
 export const DEFAULT_REPO_NAME = 'agy-beautify';
 const MAX_ZIP_BYTES = 25 * 1024 * 1024;
-const PAYLOAD_ITEMS = ['plugin.json', 'README.md', 'README_EN.md', 'LICENSE', 'assets', 'skills', 'sidecars'];
+const PAYLOAD_ITEMS = ['plugin.json', 'README.md', 'README_EN.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'assets', 'skills', 'sidecars'];
 
 export function normalizeVersion(raw) {
   return String(raw || '')

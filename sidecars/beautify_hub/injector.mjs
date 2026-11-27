@@ -75,6 +75,7 @@ function pageInstallBeautifyRuntime(owner, hash, bindingName, zhExact, zhPattern
   const wpUriCache = new Map();
   let wallpaperCatalog = [];
   let presetsCatalog = [];
+  let fontCatalog = [];
   let telemetry = null;
   let disposed = false;
 
@@ -716,84 +717,302 @@ function pageInstallBeautifyRuntime(owner, hash, bindingName, zhExact, zhPattern
       }
     `);
 
+    // 5. Custom System Font & Font Weight (safely inherits without breaking icon fonts)
+    if (settings.customFontEnabled) {
+      const buildFontCss = (raw, fallback) => {
+        const cleaned = String(raw || '').replace(/[{};<>\\\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160);
+        if (!cleaned) return '';
+        const generic = new Set(['serif', 'sans-serif', 'monospace', 'cursive', 'fantasy', 'system-ui', 'ui-sans-serif', 'ui-serif', 'ui-monospace', 'emoji']);
+        const parts = cleaned
+          .split(',')
+          .map(p => p.trim().replace(/^["']+|["']+$/g, '').trim())
+          .filter(Boolean)
+          .map(name => (generic.has(name.toLowerCase()) ? name.toLowerCase() : `"${name.replace(/"/g, '')}"`));
+        return parts.length ? `${parts.join(', ')}, ${fallback}` : '';
+      };
+      const uiStack = buildFontCss(settings.uiFontFamily, 'system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif');
+      const codeStack = buildFontCss(settings.codeFontFamily, 'ui-monospace, "Cascadia Code", Consolas, monospace');
+      const uiWeight = Math.max(100, Math.min(900, Math.round(Number(settings.uiFontWeight ?? 400) / 50) * 50));
+      const medWeight = Math.min(900, Math.max(500, uiWeight + 100));
+      const boldWeight = Math.min(900, Math.max(600, uiWeight + 200));
+      const codeWeight = Math.max(100, Math.min(900, Math.round(Number(settings.codeFontWeight ?? 400) / 50) * 50));
+      const fontRules = [];
+      if (uiStack || codeStack) {
+        fontRules.push(`:root {
+          ${uiStack ? `--font-sans: ${uiStack} !important; --font-body: ${uiStack} !important; --font-display: ${uiStack} !important;` : ''}
+          ${codeStack ? `--font-mono: ${codeStack} !important;` : ''}
+        }`);
+      }
+      if (uiStack) {
+        fontRules.push(`
+          html, body, .font-sans, button, input, select, textarea,
+          .prose, .markdown-body,
+          [data-testid="planner-response-text"], [data-testid="user-message-content"] {
+            font-family: ${uiStack} !important;
+          }
+        `);
+      }
+      if (uiWeight !== 400) {
+        fontRules.push(`
+          body, p, li, a, label, button, input, select, textarea,
+          .prose, .markdown-body,
+          [data-testid="planner-response-text"], [data-testid="user-message-content"],
+          [data-testid="sidebar-split"] span:not([class*="material-"]):not([class*="codicon"]):not(.google-symbols) {
+            font-weight: ${uiWeight} !important;
+          }
+          .font-medium {
+            font-weight: ${medWeight} !important;
+          }
+          strong, b, h1, h2, h3, h4, h5, h6, .font-semibold, .font-bold {
+            font-weight: ${boldWeight} !important;
+          }
+        `);
+      }
+      if (codeStack || codeWeight !== 400) {
+        fontRules.push(`
+          code, pre, pre code, kbd, samp, .font-mono,
+          .monaco-editor, .monaco-editor .view-lines, .xterm {
+            ${codeStack ? `font-family: ${codeStack} !important;` : ''}
+            ${codeWeight !== 400 ? `font-weight: ${codeWeight} !important;` : ''}
+          }
+        `);
+      }
+      if (fontRules.length) cssParts.push(fontRules.join('\n'));
+    }
+
     wpStyle.textContent = cssParts.join('\n');
   };
 
   // ---------------- Module 2: Auto Chinese Localization ----------------
-  const compiledPatterns = zhPatterns.map(([p, r]) => [new RegExp(p), r]);
+  const compiledPatterns = zhPatterns.map(([p, r, f]) => [new RegExp(p, f || ''), r]);
+  const zhLower = Object.create(null);
+  for (const [k, v] of Object.entries(zhExact)) {
+    const lk = k.toLowerCase();
+    if (!(lk in zhLower)) zhLower[lk] = v;
+  }
   const origTextMap = new WeakMap();
   const origAttrMap = new WeakMap();
-  const i18nSkipSelector = '[data-testid="planner-response-text"], [data-testid="user-message-content"], code, pre, textarea, input, [contenteditable="true"], #agy-beautify-model-host, #agy-beautify-studio-host, #agy-beautify-capsule-host, #agy-beautify-menu-host, #agy-beautify-toast-host, #agy-beautify-monitor-nav, #agy-beautify-monitor-overlay';
+  const observedShadowRoots = new WeakSet();
+  const TRANSLATABLE_ATTRS = ['aria-label', 'placeholder', 'title', 'data-placeholder', 'aria-placeholder', 'data-tooltip'];
+  const i18nBaseSkip = '[data-testid="planner-response-text"], [data-testid="user-message-content"], [data-testid="user-input-step"], code, pre, .monaco-editor, .xterm, .terminal, .output-view, .debug-console, #agy-beautify-model-host, #agy-beautify-studio-host, #agy-beautify-capsule-host, #agy-beautify-menu-host, #agy-beautify-toast-host, #agy-beautify-monitor-nav, #agy-beautify-monitor-overlay';
+  const i18nTextOnlySkip = 'textarea, input, [contenteditable="true"], svg, script, style, [class*="material-symbols"], [class*="material-icons"], [class*="codicon"], .google-symbols';
+  const i18nTextSkipSelector = `${i18nBaseSkip}, ${i18nTextOnlySkip}`;
+  const i18nAttrSkipSelector = i18nBaseSkip;
+  const i18nMenuAllowSelector = '[role="menu"], [role="menuitem"], [role="menuitemradio"], [role="menuitemcheckbox"], [role="listbox"], [role="option"]';
 
-  const translateStr = raw => {
-    if (typeof raw !== 'string') return null;
-    const trimmed = raw.trim();
-    if (!trimmed || trimmed.length > 90) return null;
-    if (Object.prototype.hasOwnProperty.call(zhExact, trimmed)) {
-      return raw.replace(trimmed, zhExact[trimmed]);
-    }
-    for (const [re, rep] of compiledPatterns) {
-      if (re.test(trimmed)) return raw.replace(trimmed, trimmed.replace(re, rep));
+  const normUiStr = s => s.replace(/[\u200B-\u200D\uFEFF]/g, '').replace(/\s+/g, ' ').trim().replace(/[‘’]/g, "'").replace(/[“”]/g, '"');
+
+  const lookupExactStr = norm => {
+    if (Object.prototype.hasOwnProperty.call(zhExact, norm)) return zhExact[norm];
+    if (norm.length >= 5) {
+      const lk = norm.toLowerCase();
+      if (lk in zhLower) return zhLower[lk];
     }
     return null;
   };
 
-  const runLocalization = (root = document.body) => {
-    if (!root || settings.autoChinese === false) return;
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-    let node;
-    while ((node = walker.nextNode())) {
-      const parent = node.parentElement;
-      if (!parent || parent.closest(i18nSkipSelector)) continue;
-      const cur = node.nodeValue || '';
-      const translated = translateStr(cur);
-      if (translated && translated !== cur) {
-        if (!origTextMap.has(node)) origTextMap.set(node, cur);
-        node.nodeValue = translated;
+  const translateSidebarCompactTime = (raw, parent) => {
+    if (!parent) return null;
+    if (!parent.closest('[data-testid="sidebar-split"] > div:first-child') && parent.tagName !== 'TIME') return null;
+    const trimmed = raw.trim();
+    const norm = normUiStr(trimmed);
+    if (!norm) return null;
+    if (/^now$/i.test(norm)) return raw.replace(trimmed, '刚刚');
+    const m = norm.match(/^(\d+)\s*(s|m|h|d|w|mo|yr|y)$/);
+    if (!m) return null;
+    const unitMap = { s: '秒前', m: '分钟前', h: '小时前', d: '天前', w: '周前', mo: '个月前', yr: '年前', y: '年前' };
+    return raw.replace(trimmed, m[1] + unitMap[m[2]]);
+  };
+
+  const translateStr = raw => {
+    if (typeof raw !== 'string') return null;
+    const trimmed = raw.trim();
+    if (!trimmed || trimmed.length > 700) return null;
+    const norm = normUiStr(trimmed);
+    if (!norm) return null;
+    const exact = lookupExactStr(norm);
+    if (exact !== null) return raw.replace(trimmed, exact);
+    let sm = norm.match(/^(.+?)\s*\((Ctrl|Cmd|Alt|Shift|⌘|⌥|⇧|⌃)\+?([^)]*)\)$/i);
+    if (sm) {
+      const tp = lookupExactStr(normUiStr(sm[1]));
+      if (tp) return raw.replace(trimmed, `${tp} (${sm[2]}${sm[3] ? '+' + sm[3] : ''})`);
+    }
+    sm = norm.match(/^(.+?)\s+((?:(?:Ctrl|Cmd|Alt|Shift|⌘|⌥|⇧|⌃)\+)+[A-Za-z0-9;,./-]+)$/i);
+    if (sm) {
+      const tp = lookupExactStr(normUiStr(sm[1]));
+      if (tp) return raw.replace(trimmed, `${tp} ${sm[2]}`);
+    }
+    for (const [re, rep] of compiledPatterns) {
+      if (re.test(norm)) return raw.replace(trimmed, norm.replace(re, rep));
+    }
+    return null;
+  };
+
+  const isBeautifyOwnHost = el => typeof el?.id === 'string' && el.id.startsWith('agy-beautify-');
+
+  const localizeTextNode = (node, parent) => {
+    const cur = node.nodeValue || '';
+    if (!cur.trim()) return;
+    const translated = translateStr(cur) || translateSidebarCompactTime(cur, parent);
+    if (translated && translated !== cur) {
+      if (!origTextMap.has(node)) origTextMap.set(node, cur);
+      node.nodeValue = translated;
+    }
+  };
+
+  const localizeElementAttrs = el => {
+    if (!el || typeof el.getAttribute !== 'function') return;
+    if (el.closest?.(i18nAttrSkipSelector)) return;
+    for (const attr of TRANSLATABLE_ATTRS) {
+      const val = el.getAttribute(attr);
+      if (!val) continue;
+      const t = translateStr(val);
+      if (t && t !== val) {
+        let rec = origAttrMap.get(el);
+        if (!rec) { rec = {}; origAttrMap.set(el, rec); }
+        if (!(attr in rec)) rec[attr] = val;
+        el.setAttribute(attr, t);
       }
     }
-    for (const el of root.querySelectorAll?.('[aria-label], [placeholder]') || []) {
-      if (el.closest(i18nSkipSelector)) continue;
-      for (const attr of ['aria-label', 'placeholder']) {
-        const val = el.getAttribute(attr);
-        if (!val) continue;
-        const t = translateStr(val);
-        if (t && t !== val) {
-          let rec = origAttrMap.get(el);
-          if (!rec) { rec = {}; origAttrMap.set(el, rec); }
-          if (!(attr in rec)) rec[attr] = val;
-          el.setAttribute(attr, t);
+  };
+
+  const i18nObsOpts = {
+    childList: true,
+    subtree: true,
+    characterData: true,
+    attributes: true,
+    attributeFilter: ['data-state', 'open', 'aria-expanded', 'hidden', 'aria-label', 'placeholder', 'title', 'data-placeholder'],
+  };
+
+  const localizeTree = root => {
+    if (!root || settings.autoChinese === false) return;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
+    let node;
+    while ((node = walker.nextNode())) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const parent = node.parentElement;
+        if (!parent) continue;
+        const inMenu = Boolean(parent.closest(i18nMenuAllowSelector));
+        if (inMenu) {
+          if (parent.closest(i18nTextOnlySkip) || parent.closest('code, pre')) continue;
+        } else if (parent.closest(i18nTextSkipSelector)) {
+          continue;
+        }
+        localizeTextNode(node, parent);
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        if (isBeautifyOwnHost(node)) continue;
+        localizeElementAttrs(node);
+        // Handle adjacent split text nodes inside a single UI element
+        if (node.childNodes.length >= 2 && !node.closest?.(i18nTextSkipSelector)) {
+          let run = [];
+          const flushRun = () => {
+            if (run.length >= 2) {
+              const joined = run.map(t => t.nodeValue || '').join('');
+              const tr = translateStr(joined);
+              if (tr && tr !== joined) {
+                for (let i = 0; i < run.length; i++) {
+                  if (!origTextMap.has(run[i])) origTextMap.set(run[i], run[i].nodeValue || '');
+                  run[i].nodeValue = i === 0 ? tr : '';
+                }
+              }
+            }
+            run = [];
+          };
+          for (const ch of node.childNodes) {
+            if (ch.nodeType === Node.TEXT_NODE) run.push(ch);
+            else flushRun();
+          }
+          flushRun();
+        }
+        if (node.shadowRoot && !isBeautifyOwnHost(node)) {
+          if (!observedShadowRoots.has(node.shadowRoot)) {
+            observedShadowRoots.add(node.shadowRoot);
+            try { i18nObserver.observe(node.shadowRoot, i18nObsOpts); } catch {}
+          }
+          localizeTree(node.shadowRoot);
         }
       }
     }
   };
 
-  const restoreLocalization = () => {
-    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  const runLocalization = (root = document.documentElement) => {
+    if (!root || settings.autoChinese === false) return;
+    localizeTree(root);
+  };
+
+  const restoreTree = root => {
+    if (!root) return;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
     let node;
     while ((node = walker.nextNode())) {
-      if (origTextMap.has(node)) {
-        node.nodeValue = origTextMap.get(node);
-        origTextMap.delete(node);
+      if (node.nodeType === Node.TEXT_NODE) {
+        if (origTextMap.has(node)) {
+          node.nodeValue = origTextMap.get(node);
+          origTextMap.delete(node);
+        }
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        if (isBeautifyOwnHost(node)) continue;
+        const rec = origAttrMap.get(node);
+        if (rec) {
+          for (const [k, v] of Object.entries(rec)) node.setAttribute(k, v);
+          origAttrMap.delete(node);
+        }
+        if (node.shadowRoot) restoreTree(node.shadowRoot);
       }
-    }
-    for (const el of document.querySelectorAll('[aria-label], [placeholder]')) {
-      const rec = origAttrMap.get(el);
-      if (!rec) continue;
-      for (const [k, v] of Object.entries(rec)) el.setAttribute(k, v);
-      origAttrMap.delete(el);
     }
   };
 
-  let i18nRaf = 0;
-  const i18nObserver = new MutationObserver(() => {
-    if (disposed || settings.autoChinese === false || i18nRaf) return;
-    i18nRaf = requestAnimationFrame(() => {
-      i18nRaf = 0;
-      if (!disposed && settings.autoChinese !== false) runLocalization(document.body);
+  const restoreLocalization = () => {
+    restoreTree(document.documentElement);
+  };
+
+  // Best-effort hook for native Electron context menu items (no-op if contextBridge froze electronNative)
+  const translateNativeMenuItems = items => {
+    if (!Array.isArray(items) || settings.autoChinese === false) return items;
+    return items.map(item => {
+      if (!item || typeof item !== 'object') return item;
+      const next = { ...item };
+      if (typeof next.label === 'string') {
+        const t = translateStr(next.label);
+        if (t) next.label = t;
+      }
+      if (Array.isArray(next.submenu)) next.submenu = translateNativeMenuItems(next.submenu);
+      if (Array.isArray(next.items)) next.items = translateNativeMenuItems(next.items);
+      return next;
     });
-  });
-  i18nObserver.observe(document.body, { childList: true, subtree: true, characterData: true });
+  };
+  let origShowContextMenu = null;
+  try {
+    if (window.electronNative && typeof window.electronNative.showContextMenu === 'function' && !Object.isFrozen(window.electronNative)) {
+      origShowContextMenu = window.electronNative.showContextMenu;
+      window.electronNative.showContextMenu = items => origShowContextMenu.call(window.electronNative, translateNativeMenuItems(items));
+    }
+  } catch {}
+
+  let i18nRaf = 0;
+  let i18nBurstTimer = null;
+  const scheduleLocalization = (withBurst = false) => {
+    if (disposed || settings.autoChinese === false) return;
+    if (!i18nRaf) {
+      i18nRaf = requestAnimationFrame(() => {
+        i18nRaf = 0;
+        if (!disposed && settings.autoChinese !== false) runLocalization(document.documentElement);
+      });
+    }
+    if (withBurst) {
+      clearTimeout(i18nBurstTimer);
+      i18nBurstTimer = setTimeout(() => {
+        if (!disposed && settings.autoChinese !== false) runLocalization(document.documentElement);
+      }, 70);
+    }
+  };
+
+  const i18nObserver = new MutationObserver(() => scheduleLocalization(false));
+  i18nObserver.observe(document.documentElement, i18nObsOpts);
+  const onI18nInteraction = () => scheduleLocalization(true);
+  window.addEventListener('pointerup', onI18nInteraction, true);
+  window.addEventListener('click', onI18nInteraction, true);
+  window.addEventListener('keydown', onI18nInteraction, true);
 
   // ---------------- Module 1: Gemini Starlight Liquid Glass Model & Effort Picker ----------------
   const TIER_ORDER = ['off', 'minimal', 'low', 'medium', 'high', 'extra', 'extra high', 'xhigh', 'max', 'ultra'];
@@ -2088,6 +2307,19 @@ function pageInstallBeautifyRuntime(owner, hash, bindingName, zhExact, zhPattern
       .bar > i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg,#2563eb,#7c3aed,#06b6d4); }
       .u-row { display: flex; justify-content: space-between; padding: 3px 0; font-size: 11.5px; }
       .muted { color: ${dark ? '#94a3b8' : '#64748b'}; }
+      .font-box {
+        margin-top: 9px; padding: 9px 10px; border-radius: 12px;
+        background: ${dark ? 'rgba(255,255,255,0.045)' : 'rgba(15,23,42,0.035)'};
+        border: 1px solid ${dark ? 'rgba(255,255,255,0.1)' : 'rgba(15,23,42,0.08)'};
+      }
+      .font-row { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+      .font-select {
+        flex: 1; min-width: 0; padding: 4px 8px; border-radius: 8px; font-size: 11px;
+        border: 1px solid ${dark ? 'rgba(255,255,255,0.14)' : 'rgba(15,23,42,0.12)'};
+        background: ${dark ? 'rgba(15,23,42,0.78)' : 'rgba(255,255,255,0.88)'};
+        color: ${dark ? '#f1f5f9' : '#0f172a'}; outline: none;
+      }
+      .font-w-val { font-size: 10.5px; font-weight: 700; min-width: 30px; text-align: right; color: ${dark ? '#e0e7ff' : '#4338ca'}; }
     `;
     }
 
@@ -2419,6 +2651,96 @@ function pageInstallBeautifyRuntime(owner, hash, bindingName, zhExact, zhPattern
         showToast(`已设置上下文 > ${v}% 时对话结束自动压缩`);
       };
       box.appendChild(compactBox);
+
+      // System Font & Font Weight Quick Control
+      const fontBox = document.createElement('div');
+      fontBox.className = 'font-box';
+      const fontOn = Boolean(s.customFontEnabled);
+      const curUiFont = String(s.uiFontFamily || '');
+      const curUiWeight = Math.round(Number(s.uiFontWeight ?? 400));
+      const fTop = document.createElement('div');
+      fTop.className = 'compact-top';
+      fTop.style.marginBottom = '0';
+      fTop.innerHTML = `<span class="compact-title"><span>Aa</span><span>系统字体与字重</span></span>`;
+      const fActs = document.createElement('div');
+      fActs.className = 'compact-actions';
+      const fRefBtn = document.createElement('button');
+      fRefBtn.type = 'button';
+      fRefBtn.className = 'mini-btn';
+      fRefBtn.textContent = '↻';
+      fRefBtn.title = '重新扫描本机系统字体';
+      fRefBtn.onclick = () => invokeSidecar({ action: 'refreshFonts' });
+      const fToggle = document.createElement('button');
+      fToggle.type = 'button';
+      fToggle.className = 'auto-switch' + (fontOn ? ' on' : '');
+      fToggle.textContent = fontOn ? '自定义：开' : '自定义：关';
+      fToggle.onclick = () => pushSetting({ customFontEnabled: !fontOn });
+      fActs.append(fRefBtn, fToggle);
+      fTop.appendChild(fActs);
+      fontBox.appendChild(fTop);
+
+      const fRow = document.createElement('div');
+      fRow.className = 'font-row';
+      const fSel = document.createElement('select');
+      fSel.className = 'font-select';
+      const optDef = document.createElement('option');
+      optDef.value = '';
+      optDef.textContent = `跟随系统默认 (${fontCatalog.length} 款可用)`;
+      fSel.appendChild(optDef);
+      const seenFontNames = new Set();
+      for (const f of fontCatalog) {
+        if (!f?.name || seenFontNames.has(f.name)) continue;
+        seenFontNames.add(f.name);
+        const o = document.createElement('option');
+        o.value = f.name;
+        o.textContent = f.name + (f.isMono ? ' [等宽]' : '');
+        fSel.appendChild(o);
+      }
+      if (curUiFont && !seenFontNames.has(curUiFont)) {
+        const o = document.createElement('option');
+        o.value = curUiFont;
+        o.textContent = curUiFont + ' (自定义)';
+        fSel.appendChild(o);
+      }
+      fSel.value = curUiFont;
+      fSel.onchange = () => pushSetting({ uiFontFamily: fSel.value, customFontEnabled: true });
+      fRow.appendChild(fSel);
+      fontBox.appendChild(fRow);
+
+      const wRow = document.createElement('div');
+      wRow.className = 'font-row';
+      const wLbl = document.createElement('span');
+      wLbl.className = 'muted';
+      wLbl.style.fontSize = '10.5px';
+      wLbl.textContent = '字重';
+      const wRng = document.createElement('input');
+      wRng.type = 'range';
+      wRng.min = '100';
+      wRng.max = '900';
+      wRng.step = '50';
+      wRng.value = String(curUiWeight);
+      wRng.style.cssText = 'flex:1;accent-color:#6366f1;cursor:pointer;';
+      const wVal = document.createElement('span');
+      wVal.className = 'font-w-val';
+      wVal.textContent = String(curUiWeight);
+      wRng.onpointerdown = () => { studioDragging = true; };
+      wRng.onpointerup = () => { studioDragging = false; };
+      wRng.onpointercancel = () => { studioDragging = false; };
+      wRng.oninput = () => {
+        localRev++;
+        const v = Number(wRng.value);
+        wVal.textContent = String(v);
+        settings = { ...settings, uiFontWeight: v, customFontEnabled: true };
+        applyWallpaperAndTheme();
+      };
+      wRng.onchange = () => {
+        studioDragging = false;
+        const rev = ++localRev;
+        invokeSidecar({ action: 'updateSettings', patch: { uiFontWeight: Number(wRng.value), customFontEnabled: true }, clientRev: rev });
+      };
+      wRow.append(wLbl, wRng, wVal);
+      fontBox.appendChild(wRow);
+      box.appendChild(fontBox);
 
       // Quick Toggles
       const checks = document.createElement('div');
@@ -3961,12 +4283,13 @@ function pageInstallBeautifyRuntime(owner, hash, bindingName, zhExact, zhPattern
     syncContextCapsule();
     syncMonitorNav();
     syncTitleBarOverlay(false);
+    if (settings.autoChinese !== false) runLocalization(document.documentElement);
     if (settings.wallpaperId && settings.wallpaperId !== 'none' && wallpaperDataUri && (!wpLayer || !wpLayer.isConnected)) {
       applyWallpaperAndTheme();
     }
   }, 1500);
 
-  if (settings.autoChinese !== false) runLocalization(document.body);
+  if (settings.autoChinese !== false) runLocalization(document.documentElement);
   applyWallpaperAndTheme();
   syncMonitorNav();
 
@@ -4007,7 +4330,7 @@ function pageInstallBeautifyRuntime(owner, hash, bindingName, zhExact, zhPattern
       if (monitorOpen) renderMonitorOverlay();
       return true;
     },
-    setCatalogs(wps, presets) {
+    setCatalogs(wps, presets, fonts) {
       if (Array.isArray(wps)) {
         wallpaperCatalog = wps;
         for (const w of wps) {
@@ -4015,6 +4338,7 @@ function pageInstallBeautifyRuntime(owner, hash, bindingName, zhExact, zhPattern
         }
       }
       if (Array.isArray(presets)) presetsCatalog = presets;
+      if (Array.isArray(fonts)) fontCatalog = fonts;
       if (studioPopoverHost && !studioDragging) { renderStudioContent(); repositionStudio(); }
       return true;
     },
@@ -4045,7 +4369,14 @@ function pageInstallBeautifyRuntime(owner, hash, bindingName, zhExact, zhPattern
       clearTimeout(autoCompactTimer);
       clearTimeout(toastTimer);
       if (i18nRaf) cancelAnimationFrame(i18nRaf);
+      clearTimeout(i18nBurstTimer);
       i18nObserver.disconnect();
+      window.removeEventListener('pointerup', onI18nInteraction, true);
+      window.removeEventListener('click', onI18nInteraction, true);
+      window.removeEventListener('keydown', onI18nInteraction, true);
+      if (origShowContextMenu) {
+        try { window.electronNative.showContextMenu = origShowContextMenu; } catch {}
+      }
       restoreLocalization();
       closeModelPopover();
       closeStudioPopover();
@@ -4094,6 +4425,7 @@ export function startBeautifyInjector({
   getWallpaperDataUri,
   getWallpaperCatalog,
   getPresets,
+  getFontCatalog,
   getTelemetry,
   onInvoke,
   onStatus,
@@ -4240,7 +4572,8 @@ export function startBeautifyInjector({
       const wpKey = wpId + ':' + wpDataUri.length;
       const wpCatalog = getWallpaperCatalog ? getWallpaperCatalog() : [];
       const presets = getPresets ? getPresets() : [];
-      const catalogJson = JSON.stringify([wpCatalog, presets]);
+      const fonts = getFontCatalog ? getFontCatalog() : [];
+      const catalogJson = JSON.stringify([wpCatalog, presets, fonts]);
       let okPages = 0;
 
       for (const target of pages) {
@@ -4269,7 +4602,7 @@ export function startBeautifyInjector({
           }
 
           if (entry.lastCatalogJson !== catalogJson) {
-            await evaluate(entry, ctx, `globalThis.__agyBeautifyRuntime?.setCatalogs(${JSON.stringify(wpCatalog)},${JSON.stringify(presets)})`);
+            await evaluate(entry, ctx, `globalThis.__agyBeautifyRuntime?.setCatalogs(${JSON.stringify(wpCatalog)},${JSON.stringify(presets)},${JSON.stringify(fonts)})`);
             entry.lastCatalogJson = catalogJson;
           }
 

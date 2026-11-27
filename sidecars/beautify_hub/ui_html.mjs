@@ -231,6 +231,33 @@ export function createSidebarHtml() {
       color: var(--agy-text); font-size: 12px;
     }
     input[type="text"]::placeholder { color: var(--agy-text-muted); }
+    select.sel {
+      width: 100%; padding: 7px 10px; border-radius: 8px;
+      border: 1px solid var(--agy-border); background: var(--agy-input-bg);
+      color: var(--agy-text); font-size: 12px; outline: none;
+    }
+    select.sel:focus { border-color: var(--agy-accent); }
+    .font-preview {
+      margin: 8px 0; padding: 10px 12px; border-radius: 10px;
+      border: 1px solid var(--agy-border); background: var(--agy-card-alt);
+      color: var(--agy-text);
+    }
+    .font-preview-ui { font-size: 13.5px; line-height: 1.5; }
+    .font-preview-code {
+      margin-top: 5px; padding: 5px 8px; border-radius: 7px; font-size: 11.5px;
+      background: var(--agy-input-bg); border: 1px solid var(--agy-border);
+      color: var(--agy-text-sub);
+    }
+    .weight-pills { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+    .w-pill {
+      border: 1px solid var(--agy-border); background: var(--agy-card-alt); color: var(--agy-text-sub);
+      border-radius: 7px; padding: 3px 7px; font-size: 10.5px; font-weight: 600; cursor: pointer;
+    }
+    .w-pill:hover { color: var(--agy-text); border-color: rgba(99,102,241,0.5); }
+    .w-pill.active {
+      border-color: var(--agy-accent); color: #ffffff;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+    }
     .btn {
       display: inline-flex; align-items: center; justify-content: center;
       border: 1px solid var(--agy-border); background: var(--agy-card-alt); color: var(--agy-text);
@@ -319,6 +346,69 @@ export function createSidebarHtml() {
       <div class="card">
         <h3>一键氛围预设（免调参）</h3>
         <div id="presetGrid" class="preset-grid"></div>
+      </div>
+
+      <div class="card" id="fontCard">
+        <h3>
+          <span>系统字体与字重 <span id="fontCountBadge" class="muted" style="font-size:11px;font-weight:500;"></span></span>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <button id="btnRefreshFonts" type="button" class="btn" style="padding:3px 8px;font-size:11px;">↻ 刷新</button>
+            <input type="checkbox" data-setting="customFontEnabled" title="启用自定义字体与字重" />
+          </div>
+        </h3>
+        <div class="sub-txt" style="margin-bottom:7px;">自动读取本机已安装字体，支持分别定制界面字体、代码字体与字重（关闭开关即无损还原原生字体）。</div>
+
+        <div class="font-preview" id="fontPreviewBox">
+          <div id="fontPreviewUi" class="font-preview-ui">AGY Beautify 字体预览 · 清晰优雅的中文排版 0123456789</div>
+          <div id="fontPreviewCode" class="font-preview-code">const theme = "Liquid Glass"; // 0O 1lI != === =></div>
+        </div>
+
+        <div class="filter-pills" id="fontFilters" style="margin-top:8px;">
+          <button type="button" class="f-pill active" data-ffilter="all">全部字体</button>
+          <button type="button" class="f-pill" data-ffilter="cjk">中文适配</button>
+          <button type="button" class="f-pill" data-ffilter="mono">等宽代码</button>
+        </div>
+        <div class="row-actions" style="margin-top:0;margin-bottom:7px;">
+          <input id="fontSearchInput" type="text" placeholder="搜索本机字体，如 微软雅黑、Noto、Maple、Cascadia..." />
+        </div>
+
+        <div class="sub-txt" style="margin-bottom:4px;">界面与正文字体</div>
+        <select id="selUiFont" class="sel">
+          <option value="">跟随系统默认</option>
+        </select>
+        <div class="row-actions" style="margin-top:6px;">
+          <input id="inpUiFont" type="text" placeholder="或手动输入字体栈（逗号分隔），留空为默认" />
+          <button id="btnApplyUiFont" type="button" class="btn">应用</button>
+        </div>
+
+        <div class="slider-row">
+          <div class="slider-head"><span>界面字重</span><span id="valUiWeight">400 (常规)</span></div>
+          <input id="rngUiWeight" type="range" min="100" max="900" step="50" value="400" />
+          <div class="weight-pills" id="uiWeightPills">
+            <button type="button" class="w-pill" data-w="300">300 细体</button>
+            <button type="button" class="w-pill" data-w="400">400 常规</button>
+            <button type="button" class="w-pill" data-w="500">500 中等</button>
+            <button type="button" class="w-pill" data-w="600">600 半粗</button>
+            <button type="button" class="w-pill" data-w="700">700 粗体</button>
+          </div>
+        </div>
+
+        <details class="advanced" style="margin-top:8px;padding-top:8px;">
+          <summary>代码块 / 终端等宽字体与字重</summary>
+          <div class="sub-txt" style="margin:8px 0 4px;">代码与等宽字体（等宽字体已置顶）</div>
+          <select id="selCodeFont" class="sel">
+            <option value="">跟随系统默认</option>
+          </select>
+          <div class="slider-row">
+            <div class="slider-head"><span>代码字重</span><span id="valCodeWeight">400 (常规)</span></div>
+            <input id="rngCodeWeight" type="range" min="100" max="900" step="50" value="400" />
+          </div>
+        </details>
+
+        <div class="row-actions" style="margin-top:9px;justify-content:space-between;align-items:center;">
+          <span id="fontStatusMsg" class="sub-txt"></span>
+          <button id="btnResetFonts" type="button" class="btn">恢复默认字体</button>
+        </div>
       </div>
 
       <div class="card">
@@ -499,7 +589,7 @@ export function createSidebarHtml() {
         <div class="row-actions" style="margin-top:9px;flex-wrap:wrap;">
           <button id="btnCheckUpdate" type="button" class="btn">检查更新</button>
           <button id="btnInstallUpdate" type="button" class="btn primary" style="display:none;">⚡ 一键更新并重载</button>
-          <a id="lnkReleasePage" class="btn" href="https://github.com/hongyanmo/agy-beautify/releases" target="_blank" rel="noreferrer">GitHub Releases</a>
+          <a id="lnkReleasePage" class="btn" href="https://github.com/auimus/agy-beautify/releases" target="_blank" rel="noreferrer">GitHub Releases</a>
         </div>
         <div class="toggle-row" style="margin-top:8px;border-top:1px solid var(--agy-border);padding-top:8px;">
           <div>
